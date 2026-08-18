@@ -1,0 +1,555 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <title>КБЖУ Трекер</title>
+  
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <meta name="apple-mobile-web-app-title" content="КБЖУ">
+  <meta name="theme-color" content="#F8FAFC">
+  <link rel="apple-touch-icon" href="https://cdn-icons-png.flaticon.com/512/3176/3176363.png">
+  
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+  <script src="https://unpkg.com/lucide@latest"></script>
+  
+  <style>
+    :root {
+      --bg-page: #F8FAFC;
+      --bg-card: #FFFFFF;
+      --bg-subtle: #F1F5F9;
+      --border: #E2E8F0;
+      --text-main: #0F172A;
+      --text-muted: #64748B;
+      --accent-green: #10B981;
+      --accent-blue: #3B82F6;
+      --accent-orange: #F59E0B;
+      --protein-col: #3B82F6;
+      --fat-col: #F59E0B;
+      --carb-col: #10B981;
+      --shadow-sm: 0 1px 3px rgba(0,0,0,0.05);
+      --shadow-md: 0 4px 12px rgba(0,0,0,0.06);
+      --radius-lg: 20px;
+      --radius-md: 14px;
+      --radius-sm: 10px;
+    }
+    
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      -webkit-tap-highlight-color: transparent;
+      font-family: -apple-system, BlinkMacSystemFont, "SF Pro Rounded", "SF Pro Text", "Segoe UI", Roboto, sans-serif;
+    }
+    
+    body {
+      background-color: var(--bg-page);
+      color: var(--text-main);
+      padding-top: env(safe-area-inset-top, 20px);
+      padding-bottom: calc(env(safe-area-inset-bottom, 20px) + 76px);
+      min-height: 100vh;
+      overflow-x: hidden;
+    }
+    
+    .container { max-width: 480px; margin: 0 auto; padding: 16px; }
+    
+    /* Header */
+    .header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px; }
+    .date-pill { background: var(--bg-card); border: 1px solid var(--border); border-radius: 30px; padding: 4px 8px; display: flex; align-items: center; gap: 6px; box-shadow: var(--shadow-sm); }
+    .date-label { font-size: 15px; font-weight: 700; color: var(--text-main); padding: 0 4px; }
+    .icon-btn-round { background: var(--bg-subtle); border: none; color: var(--text-main); border-radius: 50%; width: 32px; height: 32px; display: flex; align-items: center; justify-content: center; cursor: pointer; transition: all 0.15s ease; }
+    .icon-btn-round:active { background: #E2E8F0; transform: scale(0.95); }
+    
+    /* Action & Mode Selector */
+    .action-row { display: grid; grid-template-columns: 1fr auto; gap: 8px; margin-bottom: 14px; }
+    .import-btn { background: linear-gradient(135deg, #10B981, #059669); color: white; border: none; padding: 12px 16px; border-radius: var(--radius-md); font-size: 14px; font-weight: 700; display: flex; align-items: center; justify-content: center; gap: 8px; cursor: pointer; box-shadow: 0 4px 12px rgba(16, 185, 129, 0.25); }
+    .import-btn:active { transform: scale(0.98); opacity: 0.95; }
+    .settings-quick-btn { background: var(--bg-card); border: 1px solid var(--border); color: var(--text-muted); border-radius: var(--radius-md); padding: 0 14px; display: flex; align-items: center; justify-content: center; cursor: pointer; box-shadow: var(--shadow-sm); }
+    
+    /* Main Cards */
+    .card { background: var(--bg-card); border: 1px solid var(--border); border-radius: var(--radius-lg); padding: 18px; margin-bottom: 14px; box-shadow: var(--shadow-sm); }
+    .cal-summary-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; text-align: center; gap: 8px; margin-bottom: 14px; }
+    .stat-box .val { font-size: 22px; font-weight: 800; letter-spacing: -0.5px; }
+    .stat-box .label { font-size: 11px; font-weight: 600; color: var(--text-muted); margin-top: 2px; text-transform: uppercase; }
+    .progress-bar-bg { background: var(--bg-subtle); border-radius: 20px; height: 12px; overflow: hidden; margin-bottom: 16px; padding: 2px; }
+    .progress-bar-fill { background: linear-gradient(90deg, #10B981, #3B82F6); height: 100%; width: 0%; border-radius: 20px; transition: width 0.4s ease; }
+    
+    /* Macros Breakdown */
+    .fatsecret-row { display: flex; align-items: center; justify-content: space-between; gap: 16px; background: var(--bg-subtle); padding: 12px 14px; border-radius: var(--radius-md); }
+    .chart-container { width: 90px; height: 90px; position: relative; flex-shrink: 0; }
+    .chart-center-text { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); font-size: 13px; font-weight: 800; text-align: center; line-height: 1.1; }
+    .macros-breakdown { flex-grow: 1; display: flex; flex-direction: column; gap: 6px; }
+    .macro-item { display: flex; align-items: center; justify-content: space-between; font-size: 13px; }
+    .macro-label { display: flex; align-items: center; gap: 6px; font-weight: 600; }
+    .macro-dot { width: 8px; height: 8px; border-radius: 50%; }
+    .macro-val { font-weight: 700; }
+    .macro-pct { color: var(--text-muted); font-size: 11px; margin-left: 2px; }
+    
+    /* Meals */
+    .meal-group { background: var(--bg-card); border: 1px solid var(--border); border-radius: var(--radius-md); margin-bottom: 12px; overflow: hidden; box-shadow: var(--shadow-sm); }
+    .meal-group-header { padding: 12px 16px; background: #FAFBFD; border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; }
+    .meal-group-title { font-size: 15px; font-weight: 700; display: flex; align-items: center; gap: 6px; }
+    .meal-group-cals { font-size: 13px; font-weight: 700; color: var(--accent-orange); background: #FEF3C7; padding: 2px 8px; border-radius: 12px; }
+    .food-item { padding: 12px 16px; border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; }
+    .food-item:last-child { border-bottom: none; }
+    .food-name { font-size: 14px; font-weight: 600; margin-bottom: 2px; }
+    .food-macros { font-size: 12px; color: var(--text-muted); }
+    .food-cal { font-size: 14px; font-weight: 700; text-align: right; }
+    
+    /* Calendar */
+    .calendar-card { background: var(--bg-card); border: 1px solid var(--border); border-radius: var(--radius-lg); padding: 16px; margin-bottom: 14px; box-shadow: var(--shadow-sm); }
+    .calendar-nav { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
+    .calendar-month-title { font-size: 16px; font-weight: 800; }
+    .calendar-weekdays { display: grid; grid-template-columns: repeat(7, 1fr); text-align: center; font-size: 11px; font-weight: 700; color: var(--text-muted); margin-bottom: 8px; }
+    .calendar-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 6px; }
+    .cal-cell { aspect-ratio: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; border-radius: 12px; font-size: 13px; font-weight: 700; cursor: pointer; position: relative; background: var(--bg-subtle); border: 1px solid transparent; }
+    .cal-cell.empty { background: transparent; cursor: default; }
+    .cal-cell.has-data { background: #FFFFFF; border-color: var(--border); }
+    .cal-cell.has-data .cal-dot { width: 4px; height: 4px; background: var(--accent-green); border-radius: 50%; margin-top: 2px; }
+    .cal-cell.selected { background: var(--accent-blue) !important; color: #FFFFFF !important; box-shadow: 0 4px 10px rgba(59, 130, 246, 0.35); }
+    .cal-cell.selected .cal-dot { background: #FFFFFF !important; }
+    .cal-cell.today { border: 2px solid var(--accent-orange); }
+    .cal-quick-actions { display: flex; gap: 6px; margin-top: 12px; flex-wrap: wrap; }
+    .cal-chip-btn { background: var(--bg-subtle); border: 1px solid var(--border); padding: 6px 10px; border-radius: 20px; font-size: 11px; font-weight: 700; cursor: pointer; }
+    
+    .avg-summary-card { background: linear-gradient(145deg, #FFFFFF, #EFF6FF); border: 1px solid #BFDBFE; border-radius: var(--radius-lg); padding: 16px; margin-bottom: 14px; box-shadow: var(--shadow-sm); }
+    
+    /* Database */
+    .search-input { width: 100%; background: var(--bg-card); border: 1px solid var(--border); padding: 12px 16px; border-radius: var(--radius-md); font-size: 14px; margin-bottom: 12px; outline: none; }
+    .search-input:focus { border-color: var(--accent-blue); }
+    .product-row { background: var(--bg-card); border: 1px solid var(--border); border-radius: var(--radius-md); padding: 12px 14px; margin-bottom: 8px; display: flex; justify-content: space-between; align-items: center; box-shadow: var(--shadow-sm); }
+    .copy-chip { background: #EFF6FF; color: var(--accent-blue); border: none; padding: 6px 12px; border-radius: 8px; font-size: 12px; font-weight: 700; cursor: pointer; }
+    
+    /* Backup & Settings */
+    .backup-box { background: var(--bg-card); border: 1px solid var(--border); border-radius: var(--radius-lg); padding: 16px; margin-bottom: 14px; box-shadow: var(--shadow-sm); }
+    .backup-box h4 { font-size: 14px; font-weight: 800; margin-bottom: 6px; display: flex; align-items: center; gap: 6px; }
+    .backup-box p { font-size: 12px; color: var(--text-muted); margin-bottom: 12px; line-height: 1.4; }
+    .backup-btn-group { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+    .btn-action-outline { background: var(--bg-subtle); border: 1px solid var(--border); padding: 10px; border-radius: var(--radius-sm); font-size: 12px; font-weight: 700; display: flex; align-items: center; justify-content: center; gap: 6px; cursor: pointer; }
+    
+    .history-card { background: var(--bg-card); border: 1px solid var(--border); border-radius: var(--radius-md); padding: 14px; margin-bottom: 10px; cursor: pointer; }
+    .history-header { display: flex; justify-content: space-between; font-weight: 700; margin-bottom: 6px; }
+    
+    /* Bottom Nav */
+    .nav-bar { position: fixed; bottom: 0; left: 0; right: 0; height: calc(60px + env(safe-area-inset-bottom, 15px)); background: rgba(255, 255, 255, 0.94); backdrop-filter: blur(16px); border-top: 1px solid var(--border); display: flex; justify-content: space-around; align-items: center; padding-bottom: env(safe-area-inset-bottom, 15px); z-index: 100; }
+    .nav-tab { display: flex; flex-direction: column; align-items: center; color: var(--text-muted); font-size: 10px; font-weight: 600; cursor: pointer; gap: 3px; flex: 1; padding: 6px 0; }
+    .nav-tab.active { color: var(--accent-green); }
+    
+    /* Modals */
+    .modal-overlay { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(15, 23, 42, 0.4); backdrop-filter: blur(4px); display: none; align-items: center; justify-content: center; z-index: 1000; padding: 16px; }
+    .modal-overlay.open { display: flex; }
+    .modal-sheet { background: var(--bg-card); border-radius: var(--radius-lg); width: 100%; max-width: 440px; padding: 20px; box-shadow: var(--shadow-md); max-height: 90vh; overflow-y: auto; }
+    .modal-sheet h3 { font-size: 18px; font-weight: 800; margin-bottom: 12px; }
+    .modal-textarea { width: 100%; height: 120px; background: var(--bg-subtle); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 10px; font-family: monospace; font-size: 12px; margin-bottom: 14px; outline: none; resize: none; }
+    .input-group { margin-bottom: 12px; }
+    .input-group label { display: block; font-size: 12px; font-weight: 700; color: var(--text-muted); margin-bottom: 4px; text-transform: uppercase; }
+    .form-input, .form-select { width: 100%; background: var(--bg-subtle); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 10px 12px; font-size: 14px; outline: none; }
+    .btn-row { display: flex; gap: 10px; margin-top: 14px; }
+    .btn-secondary { flex: 1; background: var(--bg-subtle); border: none; padding: 12px; border-radius: var(--radius-sm); font-weight: 700; cursor: pointer; }
+    .btn-primary { flex: 1; background: var(--accent-green); color: white; border: none; padding: 12px; border-radius: var(--radius-sm); font-weight: 700; cursor: pointer; }
+    
+    .seg-control { display: flex; background: var(--bg-subtle); border-radius: var(--radius-sm); padding: 3px; margin-bottom: 12px; }
+    .seg-btn { flex: 1; border: none; background: transparent; padding: 8px; border-radius: 8px; font-size: 12px; font-weight: 700; color: var(--text-muted); cursor: pointer; }
+    .seg-btn.active { background: #FFFFFF; color: var(--text-main); box-shadow: var(--shadow-sm); }
+    .empty-state { text-align: center; padding: 30px 16px; color: var(--text-muted); font-size: 13px; line-height: 1.5; }
+    
+    .tab-content { display: none; }
+    .tab-content.active { display: block; }
+  </style>
+</head>
+<body>
+
+<input type="file" id="jsonFileInput" accept=".json" style="display:none;" onchange="handleJsonFileImport(event)">
+<input type="file" id="excelFileInput" accept=".xlsx, .xls" style="display:none;" onchange="handleExcelFileImport(event)">
+
+<div class="container">
+  <div id="tab-diary" class="tab-content active">
+    <div class="header">
+      <div class="date-pill">
+        <button class="icon-btn-round" onclick="changeDate(-1)"><i data-lucide="chevron-left" style="width:16px;height:16px;"></i></button>
+        <span class="date-label" id="currentDateLabel">18 августа</span>
+        <button class="icon-btn-round" onclick="changeDate(1)"><i data-lucide="chevron-right" style="width:16px;height:16px;"></i></button>
+      </div>
+      <button class="icon-btn-round" onclick="openTargetModal()"><i data-lucide="target" style="width:18px;height:18px;color:var(--accent-blue);"></i></button>
+    </div>
+
+    <div class="action-row">
+      <button class="import-btn" onclick="openImportModal()">
+        <i data-lucide="sparkles" style="width:18px;height:18px;"></i>
+        Вставить прием / день из чата
+      </button>
+      <button class="settings-quick-btn" onclick="quickPasteFromClipboard()">
+        <i data-lucide="clipboard-paste" style="width:18px;height:18px;color:var(--accent-green);"></i>
+      </button>
+    </div>
+
+    <div class="card">
+      <div class="cal-summary-grid">
+        <div class="stat-box"><div class="val" id="val-consumed" style="color:var(--accent-orange);">0</div><div class="label">Съедено</div></div>
+        <div class="stat-box" onclick="openTargetModal()"><div class="val" id="val-target">1900</div><div class="label">Цель ✎</div></div>
+        <div class="stat-box"><div class="val" id="val-remaining" style="color:var(--accent-green);">1900</div><div class="label">Осталось</div></div>
+      </div>
+      <div class="progress-bar-bg"><div class="progress-bar-fill" id="cal-progress"></div></div>
+
+      <div class="fatsecret-row">
+        <div class="chart-container">
+          <canvas id="macroDoughnut"></canvas>
+          <div class="chart-center-text" id="macroTotalKcal">0<br><span style="font-size:9px;color:var(--text-muted);">ккал</span></div>
+        </div>
+        <div class="macros-breakdown">
+          <div class="macro-item"><div class="macro-label"><span class="macro-dot" style="background:var(--protein-col);"></span>Белки</div><div><span class="macro-val" id="val-protein">0 г</span><span class="macro-pct" id="pct-protein">(0%)</span></div></div>
+          <div class="macro-item"><div class="macro-label"><span class="macro-dot" style="background:var(--fat-col);"></span>Жиры</div><div><span class="macro-val" id="val-fat">0 г</span><span class="macro-pct" id="pct-fat">(0%)</span></div></div>
+          <div class="macro-item"><div class="macro-label"><span class="macro-dot" style="background:var(--carb-col);"></span>Углеводы</div><div><span class="macro-val" id="val-carbs">0 г</span><span class="macro-pct" id="pct-carbs">(0%)</span></div></div>
+        </div>
+      </div>
+    </div>
+    <div id="mealsContainer"></div>
+  </div>
+
+  <div id="tab-calendar" class="tab-content">
+    <div class="header"><h2>📅 Календарь и Среднее</h2></div>
+    <div class="calendar-card">
+      <div class="calendar-nav">
+        <button class="icon-btn-round" onclick="changeCalMonth(-1)"><i data-lucide="chevron-left" style="width:16px;height:16px;"></i></button>
+        <div class="calendar-month-title" id="calMonthTitle">Август 2026</div>
+        <button class="icon-btn-round" onclick="changeCalMonth(1)"><i data-lucide="chevron-right" style="width:16px;height:16px;"></i></button>
+      </div>
+      <div class="calendar-weekdays"><div>Пн</div><div>Вт</div><div>Ср</div><div>Чт</div><div>Пт</div><div>Сб</div><div>Вс</div></div>
+      <div class="calendar-grid" id="calGrid"></div>
+      <div class="cal-quick-actions">
+        <button class="cal-chip-btn" onclick="selectCalendarPreset('week')">⚡ 7 дней</button>
+        <button class="cal-chip-btn" onclick="selectCalendarPreset('all_month')">📆 Весь месяц</button>
+        <button class="cal-chip-btn" onclick="clearCalendarSelection()">✕ Сброс</button>
+      </div>
+    </div>
+    <div class="avg-summary-card" id="avgResultCard">
+      <div class="avg-title-row">
+        <div><span style="font-size: 15px; font-weight: 800;">Среднее по выбранным дням</span><div style="font-size: 12px; color: var(--text-muted);" id="avgSelectedCount">Выбрано дней: 0</div></div>
+        <span class="avg-badge" id="avgStatusBadge">Анализ</span>
+      </div>
+      <div class="cal-summary-grid" style="margin-bottom: 12px;">
+        <div class="stat-box"><div class="val" id="avg-cal" style="color:var(--accent-orange);">0</div><div class="label">ккал/день</div></div>
+        <div class="stat-box"><div class="val" id="avg-pro" style="color:var(--accent-blue);">0 г</div><div class="label">Белки ср.</div></div>
+        <div class="stat-box"><div class="val" id="avg-fat" style="color:var(--accent-orange);">0 г</div><div class="label">Жиры ср.</div></div>
+      </div>
+      <div style="display:flex; justify-content:space-between; font-size:12px; background:rgba(255,255,255,0.7); padding:8px 12px; border-radius:10px;">
+        <span>Углеводы в ср.: <b id="avg-carb" style="color:var(--accent-green);">0 г</b></span>
+        <span>Сумма: <b id="avg-total-cal">0 ккал</b></span>
+      </div>
+    </div>
+  </div>
+
+  <div id="tab-products" class="tab-content">
+    <div class="header">
+      <h2>📦 База продуктов</h2>
+      <button class="icon-btn-round" onclick="exportProductsExcel()"><i data-lucide="file-spreadsheet" style="width:16px;height:16px;color:var(--accent-green);"></i></button>
+    </div>
+    <input type="text" class="search-input" id="productSearch" placeholder="🔍 Поиск по базе..." oninput="renderProductDatabase()">
+    <div id="productsCount" style="font-size:12px; color:var(--text-muted); margin-bottom:10px;">Всего: 0</div>
+    <div id="productsContainer"></div>
+  </div>
+
+  <div id="tab-stats" class="tab-content">
+    <div class="header"><h2>📊 Статистика FatSecret</h2></div>
+    <div class="card"><div style="font-size:14px; font-weight:700; margin-bottom:12px;">Калории по дням</div><canvas id="weekBarChart" style="max-height: 180px;"></canvas></div>
+    <h3 style="font-size: 16px; font-weight:800; margin: 16px 0 10px 4px;">История по дням</h3>
+    <div id="historyContainer"></div>
+  </div>
+
+  <div id="tab-profile" class="tab-content">
+    <div class="header"><h2>👤 Профиль и Данные</h2></div>
+    <div class="backup-box">
+      <h4><i data-lucide="shield-check" style="width:18px;height:18px;color:var(--accent-blue);"></i> Бэкап в памяти телефона (JSON)</h4>
+      <p>Выгружает все данные приложения на ваш телефон для надежности.</p>
+      <div class="backup-btn-group">
+        <button class="btn-action-outline" onclick="exportFullJsonBackup()"><i data-lucide="download" style="width:14px;height:14px;"></i> Скачать JSON</button>
+        <button class="btn-action-outline" onclick="triggerJsonImport()"><i data-lucide="upload" style="width:14px;height:14px;"></i> Восстановить</button>
+      </div>
+    </div>
+    <div class="backup-box">
+      <h4><i data-lucide="file-spreadsheet" style="width:18px;height:18px;color:var(--accent-green);"></i> Экспорт / Импорт Excel</h4>
+      <div class="backup-btn-group">
+        <button class="btn-action-outline" onclick="exportFullExcel()"><i data-lucide="file-down" style="width:14px;height:14px;"></i> Скачать XLSX</button>
+        <button class="btn-action-outline" onclick="triggerExcelImport()"><i data-lucide="file-up" style="width:14px;height:14px;"></i> Загрузить XLSX</button>
+      </div>
+    </div>
+    <div class="card">
+      <h3 style="font-size: 15px; font-weight: 800; margin-bottom: 12px;">Расчет нормы</h3>
+      <div class="input-group"><label>Пол</label><div class="seg-control"><button class="seg-btn active" id="calc-gender-m" onclick="setCalcGender('m')">Муж</button><button class="seg-btn" id="calc-gender-f" onclick="setCalcGender('f')">Жен</button></div></div>
+      <div style="display:grid; grid-template-columns: 1fr 1fr 1fr; gap:8px;">
+        <div class="input-group"><label>Возраст</label><input type="number" id="calc-age" class="form-input" value="25"></div>
+        <div class="input-group"><label>Вес</label><input type="number" id="calc-weight" class="form-input" value="75"></div>
+        <div class="input-group"><label>Рост</label><input type="number" id="calc-height" class="form-input" value="178"></div>
+      </div>
+      <div class="input-group">
+        <label>Активность</label>
+        <select id="calc-activity" class="form-select">
+          <option value="1.2">Сидячая (x1.2)</option>
+          <option value="1.375" selected>Легкая (x1.375)</option>
+          <option value="1.55">Средняя (x1.55)</option>
+          <option value="1.725">Высокая (x1.725)</option>
+        </select>
+      </div>
+      <button class="btn-primary" style="width:100%; margin-top:8px;" onclick="calculateAndSaveNorm()">Сохранить цель</button>
+    </div>
+  </div>
+</div>
+
+<div class="nav-bar">
+  <div class="nav-tab active" onclick="switchTab('diary')"><i data-lucide="book-open" style="width:20px;height:20px;"></i><span>Дневник</span></div>
+  <div class="nav-tab" onclick="switchTab('calendar')"><i data-lucide="calendar" style="width:20px;height:20px;"></i><span>Календарь</span></div>
+  <div class="nav-tab" onclick="switchTab('products')"><i data-lucide="database" style="width:20px;height:20px;"></i><span>Продукты</span></div>
+  <div class="nav-tab" onclick="switchTab('stats')"><i data-lucide="bar-chart-2" style="width:20px;height:20px;"></i><span>Аналитика</span></div>
+  <div class="nav-tab" onclick="switchTab('profile')"><i data-lucide="user" style="width:20px;height:20px;"></i><span>Профиль</span></div>
+</div>
+
+<div class="modal-overlay" id="importModal">
+  <div class="modal-sheet">
+    <h3>📥 Вставка из чата Джемини</h3>
+    <div class="seg-control" style="margin-top:4px;">
+      <button class="seg-btn active" id="mode-overwrite" onclick="setImportMode('overwrite')">Заменить день</button>
+      <button class="seg-btn" id="mode-append" onclick="setImportMode('append')">Добавить прием</button>
+    </div>
+    <textarea class="modal-textarea" id="jsonInput" placeholder='Вставьте сюда JSON...'></textarea>
+    <div class="btn-row">
+      <button class="btn-secondary" onclick="closeImportModal()">Отмена</button>
+      <button class="btn-primary" onclick="applyJsonImport()">Применить</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="targetModal">
+  <div class="modal-sheet">
+    <h3>🎯 Цель на день</h3>
+    <div class="input-group"><label>Калории (ккал)</label><input type="number" id="targetCalInput" class="form-input"></div>
+    <div class="input-group"><label>Белок (г)</label><input type="number" id="targetProInput" class="form-input"></div>
+    <div class="btn-row">
+      <button class="btn-secondary" onclick="closeTargetModal()">Отмена</button>
+      <button class="btn-primary" onclick="saveTargetModal()">Сохранить</button>
+    </div>
+  </div>
+</div>
+
+<script>
+  // === СТАБИЛЬНОЕ ЛОКАЛЬНОЕ ХРАНИЛИЩЕ ===
+  // Данные лежат ТОЛЬКО в памяти вашего браузера/телефона
+  const DEFAULT_STATE = { currentDate: new Date().toISOString().split("T")[0], userProfile: { gender: "m", age: 25, weight: 75, height: 178, activity: 1.375, goal: 0, defaultTargetCal: 1900, defaultTargetPro: 130 }, days: {}, productsDb: {} };
+  
+  let AppState;
+  try {
+    AppState = JSON.parse(localStorage.getItem("kbju_tracker_stable")) || DEFAULT_STATE;
+  } catch (e) {
+    AppState = DEFAULT_STATE;
+  }
+  
+  let currentDate = AppState.currentDate || new Date().toISOString().split("T")[0];
+  let importMode = "overwrite";
+  let calcGender = AppState.userProfile?.gender || "m";
+  let doughnutChart = null, weekChart = null;
+  let calViewYear = new Date().getFullYear(), calViewMonth = new Date().getMonth();
+  let selectedCalDates = new Set();
+
+  // Функция стабильного сохранения
+  function saveState() {
+    try {
+      localStorage.setItem("kbju_tracker_stable", JSON.stringify(AppState));
+    } catch (e) {
+      alert("⚠️ Ошибка памяти телефона! Память переполнена, данные могут не сохраниться.");
+    }
+  }
+
+  function syncProductsDatabase(dayData) {
+    if (!AppState.productsDb) AppState.productsDb = {};
+    if (!dayData || !dayData.meals) return;
+    dayData.meals.forEach(m => {
+      (m.items || []).forEach(item => {
+        if (item.name) {
+          AppState.productsDb[item.name] = { cal: Number(item.cal)||0, p: Number(item.p)||0, f: Number(item.f)||0, c: Number(item.c)||0, lastUsed: dayData.date || currentDate };
+        }
+      });
+    });
+    saveState();
+  }
+
+  function renderDay() {
+    const dayData = AppState.days[currentDate] || { date: currentDate, target_calories: AppState.userProfile?.defaultTargetCal || 1900, meals: [] };
+    const d = new Date(currentDate);
+    const months = ["янв","фев","мар","апр","мая","июн","июл","авг","сен","окт","ноя","дек"];
+    document.getElementById("currentDateLabel").innerText = `${d.getDate()} ${months[d.getMonth()]}`;
+
+    let totalCal = 0, totalP = 0, totalF = 0, totalC = 0;
+    (dayData.meals || []).forEach(m => (m.items || []).forEach(i => { totalCal+=Number(i.cal)||0; totalP+=Number(i.p)||0; totalF+=Number(i.f)||0; totalC+=Number(i.c)||0; }));
+
+    const targetCal = dayData.target_calories || 1900;
+    document.getElementById("val-consumed").innerText = Math.round(totalCal);
+    document.getElementById("val-target").innerText = targetCal;
+    document.getElementById("val-remaining").innerText = Math.round(Math.max(0, targetCal - totalCal));
+    document.getElementById("cal-progress").style.width = `${Math.min(100, Math.round((totalCal / targetCal) * 100))}%`;
+
+    document.getElementById("val-protein").innerText = `${totalP.toFixed(1)} г`;
+    document.getElementById("val-fat").innerText = `${totalF.toFixed(1)} г`;
+    document.getElementById("val-carbs").innerText = `${totalC.toFixed(1)} г`;
+
+    const calP = totalP*4, calF = totalF*9, calC = totalC*4;
+    const sum = calP + calF + calC || 1;
+    document.getElementById("pct-protein").innerText = `(${Math.round((calP/sum)*100)}%)`;
+    document.getElementById("pct-fat").innerText = `(${Math.round((calF/sum)*100)}%)`;
+    document.getElementById("pct-carbs").innerText = `(${Math.round((calC/sum)*100)}%)`;
+    document.getElementById("macroTotalKcal").innerHTML = `${Math.round(totalCal)}<br><span style="font-size:9px;">ккал</span>`;
+
+    renderDoughnut(calP, calF, calC);
+
+    const container = document.getElementById("mealsContainer");
+    if (!dayData.meals || dayData.meals.length === 0) {
+      container.innerHTML = `<div class="empty-state">Нет записей. Нажмите "Вставить"</div>`;
+    } else {
+      container.innerHTML = dayData.meals.map(m => {
+        let mealCal = 0;
+        const itemsHtml = (m.items || []).map(i => {
+          mealCal += Number(i.cal)||0;
+          return `<div class="food-item"><div><div class="food-name">${i.name}</div><div class="food-macros">Б: ${i.p}г • Ж: ${i.f}г • У: ${i.c}г</div></div><div class="food-cal">${i.cal} <span style="font-size:11px;">ккал</span></div></div>`;
+        }).join("");
+        return `<div class="meal-group"><div class="meal-group-header"><span class="meal-group-title">${m.meal}</span><span class="meal-group-cals">${Math.round(mealCal)} ккал</span></div><div>${itemsHtml}</div></div>`;
+      }).join("");
+    }
+  }
+
+  function renderDoughnut(pCal, fCal, cCal) {
+    const ctx = document.getElementById("macroDoughnut").getContext("2d");
+    const data = (pCal===0&&fCal===0&&cCal===0) ? [1,1,1] : [pCal, fCal, cCal];
+    const colors = (pCal===0&&fCal===0&&cCal===0) ? ["#E2E8F0","#E2E8F0","#E2E8F0"] : ["#3B82F6", "#F59E0B", "#10B981"];
+    if (doughnutChart) { doughnutChart.data.datasets[0].data = data; doughnutChart.data.datasets[0].backgroundColor = colors; doughnutChart.update(); } 
+    else { doughnutChart = new Chart(ctx, { type: "doughnut", data: { datasets: [{ data, backgroundColor: colors, borderWidth: 0, cutout: "76%" }] }, options: { plugins: { legend: { display: false }, tooltip: { enabled: false } } } }); }
+  }
+
+  function applyJsonImport() {
+    try {
+      const match = document.getElementById("jsonInput").value.trim().match(/\{[\s\S]*\}/);
+      if (!match) throw new Error("JSON не найден");
+      const parsed = JSON.parse(match[0]);
+      const targetDate = parsed.date || currentDate;
+      currentDate = targetDate;
+      let day = AppState.days[targetDate] || { date: targetDate, target_calories: AppState.userProfile?.defaultTargetCal||1900, meals: [] };
+
+      if (importMode === "overwrite") {
+        day.target_calories = parsed.target_calories || day.target_calories;
+        day.meals = parsed.meals || [];
+      } else {
+        (parsed.meals || []).forEach(newMeal => {
+          let mObj = day.meals.find(m => m.meal.toLowerCase() === newMeal.meal.toLowerCase());
+          if (!mObj) { mObj = { meal: newMeal.meal, items: [] }; day.meals.push(mObj); }
+          (newMeal.items || []).forEach(nItem => {
+            const idx = mObj.items.findIndex(i => i.name.trim().toLowerCase() === nItem.name.trim().toLowerCase());
+            if (idx >= 0) mObj.items[idx] = nItem; else mObj.items.push(nItem);
+          });
+        });
+      }
+      AppState.days[targetDate] = day;
+      syncProductsDatabase(day);
+      closeImportModal(); renderDay();
+      alert("✅ Сохранено в память устройства!");
+    } catch (e) { alert("Ошибка: " + e.message); }
+  }
+
+  function renderCalendar() {
+    document.getElementById("calMonthTitle").innerText = `${["Янв","Фев","Мар","Апр","Май","Июн","Июл","Авг","Сен","Окт","Ноя","Дек"][calViewMonth]} ${calViewYear}`;
+    const grid = document.getElementById("calGrid"); grid.innerHTML = "";
+    const firstDay = (new Date(calViewYear, calViewMonth, 1).getDay() + 6) % 7;
+    const totalDays = new Date(calViewYear, calViewMonth + 1, 0).getDate();
+    for (let i = 0; i < firstDay; i++) grid.appendChild(Object.assign(document.createElement("div"), {className: "cal-cell empty"}));
+    for (let day = 1; day <= totalDays; day++) {
+      const dStr = `${calViewYear}-${String(calViewMonth + 1).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
+      const c = document.createElement("div"); c.className = "cal-cell"; c.innerText = day;
+      if (AppState.days[dStr]) { c.classList.add("has-data"); c.appendChild(Object.assign(document.createElement("div"), {className: "cal-dot"})); }
+      if (dStr === currentDate) c.classList.add("today");
+      if (selectedCalDates.has(dStr)) c.classList.add("selected");
+      c.onclick = () => { selectedCalDates.has(dStr) ? selectedCalDates.delete(dStr) : selectedCalDates.add(dStr); renderCalendar(); };
+      grid.appendChild(c);
+    }
+    
+    let sumCal = 0, sumP = 0, sumF = 0, sumC = 0, count = 0;
+    Array.from(selectedCalDates).forEach(dt => {
+      const d = AppState.days[dt];
+      if (d && d.meals.length > 0) { count++; d.meals.forEach(m => m.items.forEach(i => { sumCal+=Number(i.cal)||0; sumP+=Number(i.p)||0; sumF+=Number(i.f)||0; sumC+=Number(i.c)||0; })); }
+    });
+    const div = selectedCalDates.size || 1;
+    document.getElementById("avgSelectedCount").innerText = `Выбрано дней: ${selectedCalDates.size}`;
+    document.getElementById("avg-cal").innerText = Math.round(sumCal / div);
+    document.getElementById("avg-pro").innerText = `${(sumP / div).toFixed(1)} г`;
+    document.getElementById("avg-fat").innerText = `${(sumF / div).toFixed(1)} г`;
+    document.getElementById("avg-carb").innerText = `${(sumC / div).toFixed(1)} г`;
+    document.getElementById("avg-total-cal").innerText = `${Math.round(sumCal)} ккал`;
+  }
+  function changeCalMonth(d) { calViewMonth+=d; if(calViewMonth<0){calViewMonth=11; calViewYear--;} else if(calViewMonth>11){calViewMonth=0; calViewYear++;} renderCalendar(); }
+  function selectCalendarPreset(p) { selectedCalDates.clear(); const t = new Date(currentDate); if (p==='week') for(let i=0;i<7;i++){let d=new Date(t); d.setDate(t.getDate()-i); selectedCalDates.add(d.toISOString().split("T")[0]);} else {const tD = new Date(calViewYear, calViewMonth+1,0).getDate(); for(let i=1;i<=tD;i++){let s=`${calViewYear}-${String(calViewMonth+1).padStart(2,"0")}-${String(i).padStart(2,"0")}`; if(AppState.days[s]) selectedCalDates.add(s);}} renderCalendar(); }
+  function clearCalendarSelection() { selectedCalDates.clear(); renderCalendar(); }
+
+  function renderProductDatabase() {
+    const q = document.getElementById("productSearch").value.toLowerCase();
+    const c = document.getElementById("productsContainer");
+    const k = Object.keys(AppState.productsDb||{}).filter(x => x.toLowerCase().includes(q));
+    document.getElementById("productsCount").innerText = `Всего: ${k.length}`;
+    if (!k.length) c.innerHTML = `<div class="empty-state">Пусто</div>`;
+    else c.innerHTML = k.sort().map(n => {
+      const p = AppState.productsDb[n];
+      return `<div class="product-row"><div><div style="font-size:14px;font-weight:700;">${n}</div><div style="font-size:12px;color:var(--text-muted);"><b style="color:var(--accent-orange);">${p.cal} ккал</b> • Б:${p.p} Ж:${p.f} У:${p.c}</div></div><button class="copy-chip" onclick="navigator.clipboard.writeText('${n.replace(/'/g,"\\'")} - ${p.cal} ккал (Б${p.p} Ж${p.f} У${p.c})')">Копия</button></div>`;
+    }).join("");
+  }
+
+  function renderStats() {
+    const dates = Object.keys(AppState.days||{}).sort().reverse();
+    document.getElementById("historyContainer").innerHTML = dates.map(dt => {
+      let cal=0; AppState.days[dt].meals.forEach(m=>m.items.forEach(i=>cal+=Number(i.cal)||0));
+      return `<div class="history-card" onclick="currentDate='${dt}'; switchTab('diary'); renderDay();"><div class="history-header"><span>📅 ${dt}</span><span style="color:var(--accent-orange);">${Math.round(cal)} ккал</span></div></div>`;
+    }).join("");
+  }
+
+  // Backup Functions
+  function exportFullJsonBackup() {
+    const b = new Blob([JSON.stringify(AppState, null, 2)], { type: "application/json" });
+    const a = document.createElement("a"); a.href = URL.createObjectURL(b); a.download = `kbju_backup_${new Date().toISOString().slice(0,10)}.json`; a.click();
+  }
+  function triggerJsonImport() { document.getElementById("jsonFileInput").click(); }
+  function handleJsonFileImport(e) {
+    const reader = new FileReader();
+    reader.onload = ev => { try { AppState = JSON.parse(ev.target.result); saveState(); alert("✅ Восстановлено!"); location.reload(); } catch(err) { alert("Ошибка JSON"); } };
+    reader.readAsText(e.target.files[0]);
+  }
+  
+  function exportFullExcel() {
+    const wb = XLSX.utils.book_new();
+    const lR=[["Дата","Прием","Блюдо","Ккал","Б","Ж","У"]];
+    Object.keys(AppState.days||{}).forEach(dt => AppState.days[dt].meals.forEach(m => m.items.forEach(i => lR.push([dt,m.meal,i.name,i.cal,i.p,i.f,i.c]))));
+    XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(lR), "Лог");
+    const pR=[["Продукт","Ккал","Б","Ж","У"]];
+    Object.keys(AppState.productsDb||{}).forEach(k => {let p=AppState.productsDb[k]; pR.push([k,p.cal,p.p,p.f,p.c]);});
+    XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(pR), "База");
+    XLSX.writeFile(wb, `kbju_excel_${new Date().toISOString().slice(0,10)}.xlsx`);
+  }
+
+  function setCalcGender(g) { calcGender=g; document.getElementById("calc-gender-m").classList.toggle("active",g==="m"); document.getElementById("calc-gender-f").classList.toggle("active",g==="f"); }
+  function calculateAndSaveNorm() {
+    const w = Number(document.getElementById("calc-weight").value), h = Number(document.getElementById("calc-height").value), a = Number(document.getElementById("calc-age").value), act = Number(document.getElementById("calc-activity").value), goal = Number(document.getElementById("calc-goal").value);
+    let bmr = (10*w) + (6.25*h) - (5*a); bmr = calcGender==="m" ? bmr+5 : bmr-161;
+    const tCal = Math.round(bmr * act * (1+(goal/100))), tPro = Math.round(w * 1.8);
+    AppState.userProfile = { gender: calcGender, age: a, weight: w, height: h, activity: act, goal: goal, defaultTargetCal: tCal, defaultTargetPro: tPro };
+    if(AppState.days[currentDate]) { AppState.days[currentDate].target_calories = tCal; }
+    saveState(); alert(`✅ Норма сохранена: ${tCal} ккал`);
+  }
+
+  function changeDate(d) { let date = new Date(currentDate); date.setDate(date.getDate()+d); currentDate = date.toISOString().split("T")[0]; renderDay(); }
+  function switchTab(t) { document.querySelectorAll(".tab-content, .nav-tab").forEach(el => el.classList.remove("active")); document.getElementById(`tab-${t}`).classList.add("active"); document.querySelector(`.nav-tab[onclick="switchTab('${t}')"]`).classList.add("active"); if(t==='calendar') renderCalendar(); if(t==='products') renderProductDatabase(); if(t==='stats') renderStats(); }
+  function openImportModal() { document.getElementById("jsonInput").value=""; document.getElementById("importModal").classList.add("open"); }
+  function closeImportModal() { document.getElementById("importModal").classList.remove("open"); }
+  function setImportMode(m) { importMode=m; document.getElementById("mode-overwrite").classList.toggle("active",m==="overwrite"); document.getElementById("mode-append").classList.toggle("active",m==="append"); }
+  function openTargetModal() { document.getElementById("targetCalInput").value=AppState.days[currentDate]?.target_calories||1900; document.getElementById("targetModal").classList.add("open"); }
+  function closeTargetModal() { document.getElementById("targetModal").classList.remove("open"); }
+  function saveTargetModal() { if(!AppState.days[currentDate]) AppState.days[currentDate]={date:currentDate, meals:[]}; AppState.days[currentDate].target_calories=Number(document.getElementById("targetCalInput").value); saveState(); closeTargetModal(); renderDay(); }
+  async function quickPasteFromClipboard() { try { document.getElementById("jsonInput").value = await navigator.clipboard.readText(); applyJsonImport(); } catch(e) { openImportModal(); } }
+
+  window.addEventListener("DOMContentLoaded", () => { lucide.createIcons(); renderDay(); });
+</script>
+</body>
+</html>
