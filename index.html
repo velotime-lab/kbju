@@ -177,9 +177,8 @@
     .tab-content.active { display: block; }
   </style>
 </head>
-  <body>
+<body>
 
-<!-- Скрытые инпуты для загрузки файлов -->
 <input type="file" id="jsonFileInput" accept=".json" style="display:none;" onchange="handleJsonFileImport(event)">
 <input type="file" id="excelFileInput" accept=".xlsx, .xls" style="display:none;" onchange="handleExcelFileImport(event)">
 
@@ -405,6 +404,7 @@
     </div>
   </div>
 </div>
+
 <script>
   // === СТАБИЛЬНОЕ ЛОКАЛЬНОЕ ХРАНИЛИЩЕ ===
   const DEFAULT_STATE = { 
@@ -803,4 +803,9 @@
 </script>
 </body>
 </html>
+'''
 
+with open("index.html", "w", encoding="utf-8") as f:
+    f.write(html_v5_final)
+
+print("Created index.html inside python environment!")}Моя программа не рассчитана на такие задачи.
