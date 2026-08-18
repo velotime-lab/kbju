@@ -4,455 +4,1408 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
   <title>КБЖУ Трекер</title>
+  
+  <!-- Теги для работы приложения как нативного на iPhone (PWA) -->
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <meta name="apple-mobile-web-app-title" content="КБЖУ">
+  <meta name="theme-color" content="#F8FAFC">
+  
   <link rel="apple-touch-icon" href="https://cdn-icons-png.flaticon.com/512/3176/3176363.png">
+  <link rel="manifest" href="manifest.json">
+  
+  <!-- Библиотеки: Графики, Excel, Иконки -->
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
   <script src="https://unpkg.com/lucide@latest"></script>
+  
   <style>
+    /* СВЕТЛАЯ ТЕМА (ПО УМОЛЧАНИЮ) */
     :root {
-      --bg-page: #F8FAFC; --bg-card: #FFFFFF; --bg-subtle: #F1F5F9; --border: #E2E8F0;
-      --text-main: #0F172A; --text-muted: #64748B;
-      --accent-green: #10B981; --accent-blue: #3B82F6; --accent-orange: #F59E0B; --accent-red: #EF4444;
-      --radius-lg: 20px; --radius-md: 14px; --radius-sm: 10px;
+      --bg-page: #F8FAFC;
+      --bg-card: #FFFFFF;
+      --bg-subtle: #F1F5F9;
+      --border: #E2E8F0;
+      --text-main: #0F172A;
+      --text-muted: #64748B;
+      
+      --accent-green: #10B981;
+      --accent-green-light: #ECFDF5;
+      --accent-blue: #3B82F6;
+      --accent-orange: #F59E0B;
+      --accent-red: #EF4444;
+      
+      --protein-col: #3B82F6;
+      --fat-col: #F59E0B;
+      --carb-col: #10B981;
+      
+      --shadow-sm: 0 1px 3px rgba(0,0,0,0.05);
+      --shadow-md: 0 4px 12px rgba(0,0,0,0.06);
+      --radius-lg: 20px;
+      --radius-md: 14px;
+      --radius-sm: 10px;
     }
+
+    /* ТЕМНАЯ ТЕМА */
     [data-theme="dark"] {
-      --bg-page: #0F172A; --bg-card: #1E293B; --bg-subtle: #334155; --border: #475569;
-      --text-main: #F8FAFC; --text-muted: #94A3B8;
+      --bg-page: #0F172A;
+      --bg-card: #1E293B;
+      --bg-subtle: #334155;
+      --border: #475569;
+      --text-main: #F8FAFC;
+      --text-muted: #94A3B8;
+      
+      --shadow-sm: 0 1px 3px rgba(0,0,0,0.3);
+      --shadow-md: 0 4px 12px rgba(0,0,0,0.4);
     }
-    * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, sans-serif; -webkit-tap-highlight-color: transparent; }
-    body { background: var(--bg-page); color: var(--text-main); padding: max(20px, env(safe-area-inset-top)) 16px calc(80px + env(safe-area-inset-bottom)) 16px; min-height: 100vh; transition: 0.3s; }
-    .container { max-width: 480px; margin: 0 auto; }
     
-    /* Общие стили */
-    .header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px; }
-    .icon-btn { background: var(--bg-subtle); color: var(--text-main); border: none; width: 34px; height: 34px; border-radius: 50%; display: flex; align-items: center; justify-content: center; cursor: pointer; }
-    .icon-btn.danger { color: var(--accent-red); background: rgba(239, 68, 68, 0.1); }
-    .card { background: var(--bg-card); border: 1px solid var(--border); border-radius: var(--radius-lg); padding: 16px; margin-bottom: 14px; box-shadow: 0 2px 8px rgba(0,0,0,0.04); }
-    .grid-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; text-align: center; }
-    .stat-val { font-size: 20px; font-weight: 800; }
-    .stat-lbl { font-size: 10px; font-weight: 700; color: var(--text-muted); text-transform: uppercase; margin-top: 4px; }
-    .progress-bg { background: var(--bg-subtle); height: 10px; border-radius: 10px; overflow: hidden; margin: 12px 0; }
-    .progress-fill { background: linear-gradient(90deg, var(--accent-green), var(--accent-blue)); height: 100%; transition: 0.3s; }
-    .btn { background: var(--accent-green); color: white; border: none; padding: 12px; border-radius: var(--radius-sm); font-weight: 700; cursor: pointer; width: 100%; display: flex; align-items: center; justify-content: center; gap: 8px; }
-    .btn-outline { background: var(--bg-subtle); color: var(--text-main); border: 1px solid var(--border); }
-    .input { width: 100%; background: var(--bg-subtle); border: 1px solid var(--border); color: var(--text-main); padding: 10px; border-radius: var(--radius-sm); font-size: 14px; outline: none; margin-bottom: 10px;}
+    * { 
+      box-sizing: border-box; 
+      margin: 0; 
+      padding: 0; 
+      -webkit-tap-highlight-color: transparent; 
+      font-family: -apple-system, BlinkMacSystemFont, "SF Pro Rounded", "SF Pro Text", "Segoe UI", Roboto, sans-serif; 
+    }
     
-    /* Дневник */
-    .meal-card { background: var(--bg-card); border: 1px solid var(--border); border-radius: var(--radius-md); margin-bottom: 12px; overflow: hidden; }
-    .meal-head { padding: 12px 14px; background: var(--bg-subtle); display: flex; justify-content: space-between; font-weight: 700; cursor: pointer; }
-    .meal-head.collapsed .lucide-chevron-down { transform: rotate(-90deg); transition: 0.2s; }
-    .meal-body.collapsed { display: none; }
-    .food-item { padding: 10px 14px; border-top: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; }
+    body { 
+      background-color: var(--bg-page); 
+      color: var(--text-main); 
+      padding-top: env(safe-area-inset-top, 20px); 
+      padding-bottom: calc(env(safe-area-inset-bottom, 20px) + 76px); 
+      min-height: 100vh; 
+      overflow-x: hidden; 
+      transition: background-color 0.3s, color 0.3s; 
+    }
     
-    /* Календарь */
-    .cal-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 6px; margin-top: 10px; }
-    .cal-cell { aspect-ratio: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; font-size: 13px; font-weight: 700; border-radius: 10px; background: var(--bg-subtle); cursor: pointer; }
-    .cal-cell.empty { background: transparent; }
-    .cal-cell.has-data { background: var(--bg-card); border: 1px solid var(--border); }
-    .cal-cell.selected { background: var(--accent-blue); color: white; }
-    .dot { width: 4px; height: 4px; border-radius: 50%; background: var(--accent-green); margin-top: 2px; }
-    .cal-cell.selected .dot { background: white; }
+    .container { 
+      max-width: 480px; 
+      margin: 0 auto; 
+      padding: 16px; 
+    }
     
-    /* Меню */
-    .nav { position: fixed; bottom: 0; left: 0; right: 0; background: var(--bg-card); border-top: 1px solid var(--border); display: flex; padding-bottom: env(safe-area-inset-bottom); z-index: 100;}
-    .nav-item { flex: 1; display: flex; flex-direction: column; align-items: center; padding: 10px 0; font-size: 10px; font-weight: 700; color: var(--text-muted); cursor: pointer; }
-    .nav-item.active { color: var(--accent-green); }
+    /* Header */
+    .header { 
+      display: flex; 
+      justify-content: space-between; 
+      align-items: center; 
+      margin-bottom: 14px; 
+    }
+    .date-pill { 
+      background: var(--bg-card); 
+      border: 1px solid var(--border); 
+      border-radius: 30px; 
+      padding: 4px 8px; 
+      display: flex; 
+      align-items: center; 
+      gap: 6px; 
+      box-shadow: var(--shadow-sm); 
+    }
+    .date-label { 
+      font-size: 15px; 
+      font-weight: 700; 
+      color: var(--text-main); 
+      padding: 0 4px; 
+    }
     
-    .tab { display: none; }
-    .tab.active { display: block; }
-    .modal { position: fixed; top:0; left:0; right:0; bottom:0; background: rgba(0,0,0,0.6); display: none; align-items: center; justify-content: center; z-index: 1000; padding: 16px; }
-    .modal.active { display: flex; }
-    .modal-content { background: var(--bg-card); width: 100%; max-width: 400px; padding: 20px; border-radius: var(--radius-lg); }
+    .icon-btn-round { 
+      background: var(--bg-subtle); 
+      border: none; 
+      color: var(--text-main); 
+      border-radius: 50%; 
+      width: 32px; 
+      height: 32px; 
+      display: flex; 
+      align-items: center; 
+      justify-content: center; 
+      cursor: pointer; 
+      transition: all 0.15s ease; 
+    }
+    .icon-btn-round:active { transform: scale(0.95); opacity: 0.8; }
+    .btn-danger { color: var(--accent-red); background: rgba(239, 68, 68, 0.1); }
+    
+    /* Action Row */
+    .action-row { 
+      display: grid; 
+      grid-template-columns: 1fr auto; 
+      gap: 8px; 
+      margin-bottom: 14px; 
+    }
+    .import-btn { 
+      background: linear-gradient(135deg, #10B981, #059669); 
+      color: white; 
+      border: none; 
+      padding: 12px 16px; 
+      border-radius: var(--radius-md); 
+      font-size: 14px; 
+      font-weight: 700; 
+      display: flex; 
+      align-items: center; 
+      justify-content: center; 
+      gap: 8px; 
+      cursor: pointer; 
+      box-shadow: 0 4px 12px rgba(16, 185, 129, 0.25); 
+      transition: all 0.15s; 
+    }
+    .import-btn:active { transform: scale(0.98); opacity: 0.95; }
+    
+    .settings-quick-btn { 
+      background: var(--bg-card); 
+      border: 1px solid var(--border); 
+      color: var(--text-muted); 
+      border-radius: var(--radius-md); 
+      padding: 0 14px; 
+      display: flex; 
+      align-items: center; 
+      justify-content: center; 
+      cursor: pointer; 
+      box-shadow: var(--shadow-sm); 
+    }
+    
+    /* Cards */
+    .card { 
+      background: var(--bg-card); 
+      border: 1px solid var(--border); 
+      border-radius: var(--radius-lg); 
+      padding: 18px; 
+      margin-bottom: 14px; 
+      box-shadow: var(--shadow-sm); 
+    }
+    .cal-summary-grid { 
+      display: grid; 
+      grid-template-columns: 1fr 1fr 1fr; 
+      text-align: center; 
+      gap: 8px; 
+      margin-bottom: 14px; 
+    }
+    .stat-box .val { 
+      font-size: 22px; 
+      font-weight: 800; 
+      letter-spacing: -0.5px; 
+    }
+    .stat-box .label { 
+      font-size: 11px; 
+      font-weight: 600; 
+      color: var(--text-muted); 
+      margin-top: 2px; 
+      text-transform: uppercase; 
+    }
+    
+    .progress-bar-bg { 
+      background: var(--bg-subtle); 
+      border-radius: 20px; 
+      height: 12px; 
+      overflow: hidden; 
+      margin-bottom: 8px; 
+      padding: 2px; 
+    }
+    .progress-bar-fill { 
+      background: linear-gradient(90deg, #10B981, #3B82F6); 
+      height: 100%; 
+      width: 0%; 
+      border-radius: 20px; 
+      transition: width 0.4s ease; 
+    }
+    
+    .motivational-text { 
+      text-align: center; 
+      font-size: 13px; 
+      font-weight: 600; 
+      margin-bottom: 16px; 
+      color: var(--text-muted); 
+      line-height: 1.4; 
+    }
+    /* Macros */
+    .fatsecret-row { 
+      display: flex; 
+      align-items: center; 
+      justify-content: space-between; 
+      gap: 16px; 
+      background: var(--bg-subtle); 
+      padding: 12px 14px; 
+      border-radius: var(--radius-md); 
+    }
+    .chart-container { 
+      width: 90px; 
+      height: 90px; 
+      position: relative; 
+      flex-shrink: 0; 
+    }
+    .chart-center-text { 
+      position: absolute; 
+      top: 50%; 
+      left: 50%; 
+      transform: translate(-50%, -50%); 
+      font-size: 13px; 
+      font-weight: 800; 
+      text-align: center; 
+      line-height: 1.1; 
+      color: var(--text-main); 
+    }
+    .macros-breakdown { 
+      flex-grow: 1; 
+      display: flex; 
+      flex-direction: column; 
+      gap: 6px; 
+    }
+    .macro-item { 
+      display: flex; 
+      align-items: center; 
+      justify-content: space-between; 
+      font-size: 13px; 
+    }
+    .macro-label { 
+      display: flex; 
+      align-items: center; 
+      gap: 6px; 
+      font-weight: 600; 
+    }
+    .macro-dot { width: 8px; height: 8px; border-radius: 50%; }
+    .macro-val { font-weight: 700; }
+    .macro-pct { color: var(--text-muted); font-size: 11px; margin-left: 2px; }
+    
+    /* Meals & Collapsible */
+    .meal-group { 
+      background: var(--bg-card); 
+      border: 1px solid var(--border); 
+      border-radius: var(--radius-md); 
+      margin-bottom: 12px; 
+      overflow: hidden; 
+      box-shadow: var(--shadow-sm); 
+    }
+    .meal-group-header { 
+      padding: 12px 16px; 
+      background: var(--bg-subtle); 
+      border-bottom: 1px solid var(--border); 
+      display: flex; 
+      justify-content: space-between; 
+      align-items: center; 
+      cursor: pointer; 
+      user-select: none; 
+    }
+    .meal-group-title { font-size: 15px; font-weight: 700; display: flex; align-items: center; gap: 6px; }
+    .meal-group-cals { 
+      font-size: 13px; 
+      font-weight: 700; 
+      color: var(--accent-orange); 
+      background: rgba(245, 158, 11, 0.15); 
+      padding: 2px 8px; 
+      border-radius: 12px; 
+      display: flex; 
+      align-items: center; 
+      gap: 6px; 
+    }
+    .chevron-icon { transition: transform 0.3s; }
+    .collapsed .chevron-icon { transform: rotate(-90deg); }
+    .collapsed .meal-items-container { display: none; }
+    
+    .food-item { padding: 12px 16px; border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; }
+    .food-item:last-child { border-bottom: none; }
+    .food-name { font-size: 14px; font-weight: 600; margin-bottom: 2px; color: var(--text-main); }
+    .food-macros { font-size: 12px; color: var(--text-muted); }
+    .food-cal-block { display: flex; align-items: center; gap: 10px; }
+    .food-cal { font-size: 14px; font-weight: 700; text-align: right; }
+    .del-item-btn { 
+      background: rgba(239, 68, 68, 0.1); 
+      border: none; 
+      color: var(--accent-red); 
+      width: 28px; 
+      height: 28px; 
+      border-radius: 6px; 
+      display: flex; 
+      align-items: center; 
+      justify-content: center; 
+      cursor: pointer; 
+    }
+    
+    /* Calendar */
+    .calendar-card { background: var(--bg-card); border: 1px solid var(--border); border-radius: var(--radius-lg); padding: 16px; margin-bottom: 14px; box-shadow: var(--shadow-sm); }
+    .calendar-nav { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
+    .calendar-month-title { font-size: 16px; font-weight: 800; }
+    .calendar-weekdays { display: grid; grid-template-columns: repeat(7, 1fr); text-align: center; font-size: 11px; font-weight: 700; color: var(--text-muted); margin-bottom: 8px; }
+    .calendar-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 6px; }
+    .cal-cell { aspect-ratio: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; border-radius: 12px; font-size: 13px; font-weight: 700; cursor: pointer; background: var(--bg-subtle); border: 1px solid transparent; transition: all 0.15s ease; }
+    .cal-cell.empty { background: transparent; cursor: default; }
+    .cal-cell.has-data { background: var(--bg-card); border-color: var(--border); }
+    .cal-cell.has-data .cal-dot { width: 4px; height: 4px; background: var(--accent-green); border-radius: 50%; margin-top: 2px; }
+    .cal-cell.selected { background: var(--accent-blue) !important; color: #FFFFFF !important; box-shadow: 0 4px 10px rgba(59, 130, 246, 0.35); }
+    .cal-cell.selected .cal-dot { background: #FFFFFF !important; }
+    .cal-cell.today { border: 2px solid var(--accent-orange); }
+    .cal-quick-actions { display: flex; gap: 6px; margin-top: 12px; flex-wrap: wrap; }
+    .cal-chip-btn { background: var(--bg-subtle); border: 1px solid var(--border); padding: 6px 10px; border-radius: 20px; font-size: 11px; font-weight: 700; cursor: pointer; color: var(--text-main); }
+    
+    .avg-summary-card { background: var(--bg-subtle); border: 1px solid var(--border); border-radius: var(--radius-lg); padding: 16px; margin-bottom: 14px; box-shadow: var(--shadow-sm); }
+    .avg-title-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
+    .avg-badge { background: var(--accent-blue); color: white; font-size: 11px; font-weight: 700; padding: 3px 8px; border-radius: 12px; }
+    
+    /* Database */
+    .search-input { width: 100%; background: var(--bg-subtle); border: 1px solid var(--border); padding: 12px 16px; border-radius: var(--radius-md); font-size: 14px; margin-bottom: 12px; outline: none; color: var(--text-main); }
+    .product-row { background: var(--bg-card); border: 1px solid var(--border); border-radius: var(--radius-md); padding: 12px 14px; margin-bottom: 8px; display: flex; justify-content: space-between; align-items: center; box-shadow: var(--shadow-sm); }
+    .copy-chip { background: var(--bg-subtle); color: var(--accent-blue); border: 1px solid var(--border); padding: 6px 12px; border-radius: 8px; font-size: 12px; font-weight: 700; cursor: pointer; }
+    
+    /* Settings / Profile */
+    .backup-box { background: var(--bg-card); border: 1px solid var(--border); border-radius: var(--radius-lg); padding: 16px; margin-bottom: 14px; box-shadow: var(--shadow-sm); }
+    .backup-btn-group { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 10px; }
+    .btn-action-outline { background: var(--bg-subtle); border: 1px solid var(--border); padding: 10px; border-radius: var(--radius-sm); font-size: 12px; font-weight: 700; display: flex; align-items: center; justify-content: center; gap: 6px; cursor: pointer; color: var(--text-main); }
+    
+    .input-group { margin-bottom: 12px; }
+    .input-group label { display: block; font-size: 12px; font-weight: 700; color: var(--text-muted); margin-bottom: 4px; text-transform: uppercase; }
+    .form-input, .form-select { width: 100%; background: var(--bg-subtle); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 10px 12px; font-size: 14px; outline: none; color: var(--text-main); }
+    
+    /* Buttons */
+    .btn-primary { width: 100%; background: var(--accent-green); color: white; border: none; padding: 12px; border-radius: var(--radius-sm); font-weight: 700; cursor: pointer; margin-top: 8px; }
+    .btn-secondary { width: 100%; background: var(--bg-subtle); color: var(--text-main); border: none; padding: 12px; border-radius: var(--radius-sm); font-weight: 700; cursor: pointer; margin-top: 8px; }
+    .btn-row { display: flex; gap: 10px; }
+    
+    .seg-control { display: flex; background: var(--bg-subtle); border-radius: var(--radius-sm); padding: 3px; margin-bottom: 12px; }
+    .seg-btn { flex: 1; border: none; background: transparent; padding: 8px; border-radius: 8px; font-size: 12px; font-weight: 700; color: var(--text-muted); cursor: pointer; }
+    .seg-btn.active { background: var(--bg-card); color: var(--text-main); box-shadow: var(--shadow-sm); }
+    
+    /* Navigation */
+    .nav-bar { position: fixed; bottom: 0; left: 0; right: 0; height: calc(60px + env(safe-area-inset-bottom, 15px)); background: var(--bg-card); border-top: 1px solid var(--border); display: flex; justify-content: space-around; align-items: center; padding-bottom: env(safe-area-inset-bottom, 15px); z-index: 100; }
+    .nav-tab { display: flex; flex-direction: column; align-items: center; color: var(--text-muted); font-size: 10px; font-weight: 600; cursor: pointer; gap: 3px; flex: 1; padding: 6px 0; }
+    .nav-tab.active { color: var(--accent-green); }
+    
+    /* Modals */
+    .modal-overlay { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.6); backdrop-filter: blur(4px); display: none; align-items: center; justify-content: center; z-index: 1000; padding: 16px; }
+    .modal-overlay.open { display: flex; }
+    .modal-sheet { background: var(--bg-card); border-radius: var(--radius-lg); width: 100%; max-width: 440px; padding: 20px; box-shadow: var(--shadow-md); max-height: 90vh; overflow-y: auto; }
+    .modal-textarea { width: 100%; height: 120px; background: var(--bg-subtle); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 10px; font-family: monospace; font-size: 12px; margin-bottom: 14px; outline: none; resize: none; color: var(--text-main); }
+    .text-export-area { width: 100%; height: 300px; font-family: monospace; font-size: 11px; white-space: pre; overflow-x: auto; background: var(--bg-subtle); border: 1px solid var(--border); padding: 10px; border-radius: 8px; color: var(--text-main); }
+    
+    .empty-state { text-align: center; padding: 30px 16px; color: var(--text-muted); font-size: 13px; line-height: 1.5; }
+    .tab-content { display: none; }
+    .tab-content.active { display: block; }
   </style>
 </head>
 <body>
 
-<input type="file" id="fileJson" accept=".json" style="display:none;" onchange="importJsonFile(event)">
-<input type="file" id="fileExcel" accept=".xlsx,.xls" style="display:none;" onchange="importExcelFile(event)">
+<input type="file" id="jsonFileInput" accept=".json" style="display:none;" onchange="handleJsonFileImport(event)">
+<input type="file" id="excelFileInput" accept=".xlsx, .xls" style="display:none;" onchange="handleExcelFileImport(event)">
 
-<!-- Вкладка 1: ДНЕВНИК -->
-<div id="tab-diary" class="tab active">
-  <div class="header">
-    <div style="display:flex; align-items:center; gap:8px; background:var(--bg-card); padding:4px 10px; border-radius:20px; border:1px solid var(--border); font-weight:700;">
-      <i data-lucide="chevron-left" onclick="shiftDate(-1)"></i> <span id="lblDate"></span> <i data-lucide="chevron-right" onclick="shiftDate(1)"></i>
-    </div>
-    <div style="display:flex; gap:8px;">
-      <button class="icon-btn" onclick="toggleTheme()"><i data-lucide="moon" id="themeIcon"></i></button>
-      <button class="icon-btn danger" onclick="deleteDay()"><i data-lucide="trash-2"></i></button>
-    </div>
-  </div>
-
-  <div style="display:flex; gap:8px; margin-bottom:14px;">
-    <button class="btn" style="flex:1;" onclick="openModal('modImport')"><i data-lucide="sparkles"></i> Чат JSON</button>
-    <button class="btn btn-outline" style="width:50px;" onclick="pasteClipboard()"><i data-lucide="clipboard"></i></button>
-  </div>
-
-  <div class="card">
-    <div class="grid-3">
-      <div><div class="stat-val" id="vCon" style="color:var(--accent-orange)">0</div><div class="stat-lbl">Съедено</div></div>
-      <div onclick="openModal('modTarget')"><div class="stat-val" id="vTar">1900</div><div class="stat-lbl">Цель ✎</div></div>
-      <div><div class="stat-val" id="vRem" style="color:var(--accent-green)">1900</div><div class="stat-lbl">Остаток</div></div>
-    </div>
-    <div class="progress-bg"><div class="progress-fill" id="vProg"></div></div>
-    <div style="text-align:center; font-size:12px; font-weight:700; color:var(--text-muted); margin-bottom:12px;" id="vMotiv"></div>
-    
-    <div style="display:flex; align-items:center; justify-content:space-between; background:var(--bg-subtle); padding:12px; border-radius:var(--radius-md);">
-      <div style="position:relative; width:80px; height:80px;">
-        <canvas id="chartDoughnut"></canvas>
-        <div style="position:absolute; top:50%; left:50%; transform:translate(-50%,-50%); font-size:11px; font-weight:800; text-align:center;" id="vKcalChart"></div>
-      </div>
-      <div style="flex:1; margin-left:16px; font-size:12px; font-weight:700;">
-        <div style="display:flex; justify-content:space-between; margin-bottom:6px;"><span style="color:var(--accent-blue)">Б: <span id="vP"></span></span> <span id="vPp" style="color:var(--text-muted)"></span></div>
-        <div style="display:flex; justify-content:space-between; margin-bottom:6px;"><span style="color:var(--accent-orange)">Ж: <span id="vF"></span></span> <span id="vFp" style="color:var(--text-muted)"></span></div>
-        <div style="display:flex; justify-content:space-between;"><span style="color:var(--accent-green)">У: <span id="vC"></span></span> <span id="vCp" style="color:var(--text-muted)"></span></div>
-      </div>
-    </div>
-  </div>
-  <div id="mealsList"></div>
-</div>
-
-<!-- Вкладка 2: КАЛЕНДАРЬ -->
-<div id="tab-calendar" class="tab">
-  <div class="header"><h2>📅 Календарь</h2></div>
-  <div class="card">
-    <div style="display:flex; justify-content:space-between; font-weight:800; margin-bottom:10px;">
-      <i data-lucide="chevron-left" onclick="renderCal(-1)"></i> <span id="calTitle"></span> <i data-lucide="chevron-right" onclick="renderCal(1)"></i>
-    </div>
-    <div class="cal-grid" style="color:var(--text-muted); font-size:10px;">
-      <div>Пн</div><div>Вт</div><div>Ср</div><div>Чт</div><div>Пт</div><div>Сб</div><div>Вс</div>
-    </div>
-    <div class="cal-grid" id="calDays"></div>
-    <div style="display:flex; gap:8px; margin-top:12px; overflow-x:auto;">
-      <button class="btn btn-outline" style="padding:6px; font-size:11px;" onclick="selCal('week')">7 дней</button>
-      <button class="btn btn-outline" style="padding:6px; font-size:11px;" onclick="selCal('month')">Месяц</button>
-      <button class="btn btn-outline" style="padding:6px; font-size:11px;" onclick="selCal('clear')">Сброс</button>
-    </div>
-  </div>
+<div class="container">
   
-  <div class="card" style="background:var(--bg-subtle)">
-    <div style="display:flex; justify-content:space-between; font-weight:800; margin-bottom:12px;">
-      <span>Анализ <span id="calCount" style="color:var(--text-muted); font-size:12px; font-weight:600;">(0 дн.)</span></span>
-    </div>
-    <div style="background:var(--bg-card); padding:12px; border-radius:10px; text-align:center; border:1px solid var(--border); margin-bottom:12px;">
-      <div style="font-size:10px; color:var(--text-muted); font-weight:800; text-transform:uppercase;">Средний дефицит (от физ. нормы)</div>
-      <div id="calAvgDef" style="font-size:20px; font-weight:800; margin:4px 0;">0 ккал / день</div>
-      <div id="calTdeeInfo" style="font-size:11px; color:var(--text-muted);">Норма поддержания: - ккал</div>
-    </div>
-    <div class="grid-3">
-      <div><div class="stat-val" id="cA">0</div><div class="stat-lbl">ккал/дн</div></div>
-      <div><div class="stat-val" id="cP" style="color:var(--accent-blue)">0</div><div class="stat-lbl">Белки ср</div></div>
-      <div><div class="stat-val" id="cF" style="color:var(--accent-orange)">0</div><div class="stat-lbl">Жиры ср</div></div>
-    </div>
-  </div>
-</div>
-
-<!-- Вкладка 3: БАЗА -->
-<div id="tab-db" class="tab">
-  <div class="header"><h2>📦 База блюд</h2></div>
-  <input type="text" class="input" id="searchInp" placeholder="🔍 Поиск..." oninput="renderDb()">
-  <div id="dbList"></div>
-</div>
-
-<!-- Вкладка 4: ПРОФИЛЬ & НАСТРОЙКИ -->
-<div id="tab-profile" class="tab">
-  <div class="header"><h2>👤 Профиль и Настройки</h2></div>
-  
-  <div class="card">
-    <h3 style="font-size:15px; font-weight:800; margin-bottom:10px;">🎯 Расчет нормы</h3>
-    <p style="font-size:11px; color:var(--text-muted); margin-bottom:12px;">Теоретическая норма (TDEE) покажет, сколько вы тратите. Цель — сколько хотите есть.</p>
-    
-    <div style="display:flex; gap:8px; margin-bottom:10px;">
-      <button class="btn btn-outline" style="flex:1;" id="gM" onclick="setG('m')">Муж</button>
-      <button class="btn btn-outline" style="flex:1;" id="gF" onclick="setG('f')">Жен</button>
-    </div>
-    <div style="display:flex; gap:8px; margin-bottom:10px;">
-      <input type="number" class="input" id="pAge" placeholder="Возраст">
-      <input type="number" class="input" id="pW" placeholder="Вес (кг)">
-      <input type="number" class="input" id="pH" placeholder="Рост (см)">
-    </div>
-    <select class="input" id="pAct">
-      <option value="1.2">Сидячая (x1.2)</option>
-      <option value="1.375">Легкая (x1.375)</option>
-      <option value="1.55">Средняя (x1.55)</option>
-      <option value="1.725">Высокая (x1.725)</option>
-    </select>
-    <div style="display:flex; justify-content:space-between; align-items:center; margin:10px 0;">
-      <span style="font-size:13px; font-weight:700;">Дефицит / Профицит:</span>
-      <div style="display:flex; align-items:center; gap:6px;">
-        <input type="number" id="pDef" class="input" style="width:60px; margin:0;" value="-15"> %
+  <!-- Вкладка 1: ДНЕВНИК -->
+  <div id="tab-diary" class="tab-content active">
+    <div class="header">
+      <div class="date-pill">
+        <button class="icon-btn-round" onclick="changeDate(-1)"><i data-lucide="chevron-left" style="width:16px;height:16px;"></i></button>
+        <span class="date-label" id="currentDateLabel">Сегодня</span>
+        <button class="icon-btn-round" onclick="changeDate(1)"><i data-lucide="chevron-right" style="width:16px;height:16px;"></i></button>
+      </div>
+      <div style="display:flex; gap:8px;">
+        <button class="icon-btn-round" onclick="toggleTheme()" title="Сменить тему"><i data-lucide="moon" id="theme-icon" style="width:18px;height:18px;"></i></button>
+        <button class="icon-btn-round btn-danger" onclick="deleteCurrentDay()" title="Удалить весь день"><i data-lucide="trash-2" style="width:18px;height:18px;"></i></button>
       </div>
     </div>
-    <button class="btn" onclick="calcNorm()">Рассчитать и сохранить</button>
+
+    <div class="action-row">
+      <button class="import-btn" onclick="openImportModal()">
+        <i data-lucide="sparkles" style="width:18px;height:18px;"></i> Добавить из чата
+      </button>
+      <button class="settings-quick-btn" onclick="quickPasteFromClipboard()" title="Быстрая вставка">
+        <i data-lucide="clipboard-paste" style="width:18px;height:18px;color:var(--accent-green);"></i>
+      </button>
+    </div>
+
+    <div class="card">
+      <div class="cal-summary-grid">
+        <div class="stat-box"><div class="val" id="val-consumed" style="color:var(--accent-orange);">0</div><div class="label">Съедено</div></div>
+        <div class="stat-box" onclick="openTargetModal()" style="cursor:pointer;"><div class="val" id="val-target">1900</div><div class="label">Цель ✎</div></div>
+        <div class="stat-box"><div class="val" id="val-remaining" style="color:var(--accent-green);">1900</div><div class="label">Осталось</div></div>
+      </div>
+      
+      <div class="progress-bar-bg"><div class="progress-bar-fill" id="cal-progress"></div></div>
+      <div class="motivational-text" id="motivational-text">☀️ Начинаем день с чистого листа! Что вкусненького съедим?</div>
+
+      <div class="fatsecret-row">
+        <div class="chart-container">
+          <canvas id="macroDoughnut"></canvas>
+          <div class="chart-center-text" id="macroTotalKcal">0<br><span style="font-size:9px;color:var(--text-muted);">ккал</span></div>
+        </div>
+        <div class="macros-breakdown">
+          <div class="macro-item"><div class="macro-label"><span class="macro-dot" style="background:var(--protein-col);"></span>Белки</div><div><span class="macro-val" id="val-protein">0 г</span><span class="macro-pct" id="pct-protein">(0%)</span></div></div>
+          <div class="macro-item"><div class="macro-label"><span class="macro-dot" style="background:var(--fat-col);"></span>Жиры</div><div><span class="macro-val" id="val-fat">0 г</span><span class="macro-pct" id="pct-fat">(0%)</span></div></div>
+          <div class="macro-item"><div class="macro-label"><span class="macro-dot" style="background:var(--carb-col);"></span>Углеводы</div><div><span class="macro-val" id="val-carbs">0 г</span><span class="macro-pct" id="pct-carbs">(0%)</span></div></div>
+        </div>
+      </div>
+    </div>
     
-    <div style="margin-top:14px; padding-top:14px; border-top:1px solid var(--border); font-size:13px; font-weight:700;">
-      <div style="display:flex; justify-content:space-between; margin-bottom:6px;"><span>Теоретическая норма:</span><span id="lblTdee" style="color:var(--text-muted)">-</span></div>
-      <div style="display:flex; justify-content:space-between;"><span>Выбранная цель:</span><span id="lblGoal" style="color:var(--accent-green)">-</span></div>
+    <div id="mealsContainer">
+      <!-- Сюда вставляются блюда -->
     </div>
   </div>
 
-  <div class="card">
-    <h3 style="font-size:15px; font-weight:800; margin-bottom:12px;">💾 Управление данными</h3>
-    <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-bottom:8px;">
-      <button class="btn btn-outline" onclick="exportJson()"><i data-lucide="download"></i> JSON</button>
-      <button class="btn btn-outline" onclick="document.getElementById('fileJson').click()"><i data-lucide="upload"></i> В JSON</button>
-      <button class="btn btn-outline" onclick="exportExcel()"><i data-lucide="file-spreadsheet"></i> Excel</button>
-      <button class="btn btn-outline" onclick="document.getElementById('fileExcel').click()"><i data-lucide="upload"></i> В Excel</button>
-    </div>
-    <button class="btn btn-outline" style="width:100%; border-color:var(--accent-blue); color:var(--accent-blue);" onclick="exportText()"><i data-lucide="file-text"></i> Экспорт текстом</button>
+  <!-- Вкладка 2: КАЛЕНДАРЬ -->
+  <div id="tab-calendar" class="tab-content">
+    <div class="header"><h2>📅 Календарь и Среднее</h2></div>
     
-    <div style="margin-top:16px;">
-      <label style="font-size:12px; font-weight:700;">Уведомление о бэкапе (ЧЧ:ММ)</label>
-      <div style="display:flex; gap:8px; margin-top:4px;">
-        <input type="time" id="notifTime" class="input" style="margin:0;">
-        <button class="btn" style="width:auto;" onclick="saveNotif()">Вкл</button>
+    <div class="calendar-card">
+      <div class="calendar-nav">
+        <button class="icon-btn-round" onclick="changeCalMonth(-1)"><i data-lucide="chevron-left" style="width:16px;height:16px;"></i></button>
+        <div class="calendar-month-title" id="calMonthTitle">Август 2026</div>
+        <button class="icon-btn-round" onclick="changeCalMonth(1)"><i data-lucide="chevron-right" style="width:16px;height:16px;"></i></button>
+      </div>
+      <div class="calendar-weekdays"><div>Пн</div><div>Вт</div><div>Ср</div><div>Чт</div><div>Пт</div><div>Сб</div><div>Вс</div></div>
+      <div class="calendar-grid" id="calGrid"></div>
+      
+      <div class="cal-quick-actions">
+        <button class="cal-chip-btn" onclick="selectCalendarPreset('week')">⚡ Последние 7 дней</button>
+        <button class="cal-chip-btn" onclick="selectCalendarPreset('all_month')">📆 Весь месяц</button>
+        <button class="cal-chip-btn" onclick="clearCalendarSelection()">✕ Сброс</button>
+      </div>
+    </div>
+    
+    <div class="avg-summary-card" id="avgResultCard">
+      <div class="avg-title-row">
+        <div>
+          <span style="font-size: 15px; font-weight: 800;">Анализ</span>
+          <div style="font-size: 12px; color: var(--text-muted);" id="avgSelectedCount">Выбрано дней: 0</div>
+        </div>
+      </div>
+      
+      <div style="background: var(--bg-card); padding: 12px; border-radius: 10px; margin-bottom: 12px; text-align: center; border: 1px solid var(--border);">
+        <div style="font-size: 11px; text-transform: uppercase; color: var(--text-muted); font-weight: 700; margin-bottom: 4px;">Суммарный Дефицит</div>
+        <div id="total-deficit" style="font-size: 22px; font-weight: 800; color: var(--accent-green);">0 ккал</div>
+        <div id="avg-deficit" style="font-size: 12px; color: var(--text-muted); margin-top: 2px;">В среднем: 0 ккал / день</div>
+      </div>
+
+      <div class="cal-summary-grid" style="margin-bottom: 12px;">
+        <div class="stat-box"><div class="val" id="avg-cal" style="color:var(--accent-orange);">0</div><div class="label">ккал/день</div></div>
+        <div class="stat-box"><div class="val" id="avg-pro" style="color:var(--accent-blue);">0 г</div><div class="label">Белки ср.</div></div>
+        <div class="stat-box"><div class="val" id="avg-fat" style="color:var(--accent-orange);">0 г</div><div class="label">Жиры ср.</div></div>
+      </div>
+    </div>
+  </div>
+  <!-- Вкладка 3: ПРОДУКТЫ -->
+  <div id="tab-products" class="tab-content">
+    <div class="header">
+      <h2>📦 База продуктов</h2>
+      <button class="icon-btn-round" onclick="exportProductsExcel()">
+        <i data-lucide="file-spreadsheet" style="width:16px;height:16px;color:var(--accent-green);"></i>
+      </button>
+    </div>
+    <input type="text" class="search-input" id="productSearch" placeholder="🔍 Поиск по базе..." oninput="renderProductDatabase()">
+    <div id="productsCount" style="font-size:12px; color:var(--text-muted); margin-bottom:10px;">Всего: 0</div>
+    <div id="productsContainer"></div>
+  </div>
+
+  <!-- Вкладка 4: СТАТИСТИКА -->
+  <div id="tab-stats" class="tab-content">
+    <div class="header"><h2>📊 Статистика FatSecret</h2></div>
+    <div class="card">
+      <div style="font-size:14px; font-weight:700; margin-bottom:12px;">Калории по дням</div>
+      <canvas id="weekBarChart" style="max-height: 180px;"></canvas>
+    </div>
+    <h3 style="font-size: 16px; font-weight:800; margin: 16px 0 10px 4px;">История по дням</h3>
+    <div id="historyContainer"></div>
+  </div>
+
+  <!-- Вкладка 5: ПРОФИЛЬ И БЭКАПЫ -->
+  <div id="tab-profile" class="tab-content">
+    <div class="header"><h2>👤 Профиль и Настройки</h2></div>
+    
+    <!-- Напоминания -->
+    <div class="backup-box">
+      <h4><i data-lucide="bell-ring" style="width:18px;height:18px;color:var(--accent-orange);"></i> Уведомление о бэкапе</h4>
+      <p>Настройте время, чтобы мы напоминали выгрузить резервную копию.</p>
+      <div style="display:flex; gap:10px; align-items:center;">
+        <input type="time" id="backup-time-input" class="form-input" style="flex:1;">
+        <button class="btn-primary" style="margin:0; width:auto; padding: 10px 16px;" onclick="saveNotificationSettings()">Вкл</button>
+      </div>
+    </div>
+
+    <!-- Бэкапы JSON -->
+    <div class="backup-box">
+      <h4><i data-lucide="shield-check" style="width:18px;height:18px;color:var(--accent-blue);"></i> Бэкап в памяти (JSON)</h4>
+      <p>Выгружает 100% данных (идеально для стабильности).</p>
+      <div class="backup-btn-group">
+        <button class="btn-action-outline" onclick="exportFullJsonBackup()"><i data-lucide="download" style="width:14px;height:14px;"></i> Скачать JSON</button>
+        <button class="btn-action-outline" onclick="triggerJsonImport()"><i data-lucide="upload" style="width:14px;height:14px;"></i> Восстановить</button>
+      </div>
+    </div>
+    
+    <!-- Бэкапы Excel -->
+    <div class="backup-box">
+      <h4><i data-lucide="file-spreadsheet" style="width:18px;height:18px;color:var(--accent-green);"></i> Экспорт / Импорт Excel</h4>
+      <div class="backup-btn-group">
+        <button class="btn-action-outline" onclick="exportFullExcel()"><i data-lucide="file-down" style="width:14px;height:14px;"></i> Скачать XLSX</button>
+        <button class="btn-action-outline" onclick="triggerExcelImport()"><i data-lucide="file-up" style="width:14px;height:14px;"></i> Загрузить XLSX</button>
+      </div>
+    </div>
+
+    <!-- Текстовый экспорт -->
+    <div class="backup-box">
+      <h4><i data-lucide="file-text" style="width:18px;height:18px;color:var(--accent-purple);"></i> Текстовый Экспорт</h4>
+      <p>Выгрузить дневник и базу в простом текстовом формате (для заметок).</p>
+      <button class="btn-primary" style="width:100%;" onclick="exportText()">Сгенерировать текст</button>
+    </div>
+    
+    <!-- Ручная и авто норма -->
+    <div class="card">
+      <h3 style="font-size: 15px; font-weight: 800; margin-bottom: 12px;">Настройка нормы (Глобально)</h3>
+      
+      <label style="font-size:12px; font-weight:700; color:var(--text-muted); margin-bottom:4px; display:block;">Режим расчета:</label>
+      <div class="seg-control">
+        <button class="seg-btn active" id="norm-mode-auto" onclick="setNormMode('auto')">Авто (Формула)</button>
+        <button class="seg-btn" id="norm-mode-manual" onclick="setNormMode('manual')">Вручную</button>
+      </div>
+
+      <!-- Авто -->
+      <div id="norm-auto-block">
+        <div class="input-group">
+          <label>Пол</label>
+          <div class="seg-control">
+            <button class="seg-btn active" id="calc-gender-m" onclick="setCalcGender('m')">Муж</button>
+            <button class="seg-btn" id="calc-gender-f" onclick="setCalcGender('f')">Жен</button>
+          </div>
+        </div>
+        <div style="display:grid; grid-template-columns: 1fr 1fr 1fr; gap:8px;">
+          <div class="input-group"><label>Возраст</label><input type="number" id="calc-age" class="form-input" value="25"></div>
+          <div class="input-group"><label>Вес</label><input type="number" id="calc-weight" class="form-input" value="75"></div>
+          <div class="input-group"><label>Рост</label><input type="number" id="calc-height" class="form-input" value="178"></div>
+        </div>
+        <div class="input-group">
+          <label>Активность</label>
+          <select id="calc-activity" class="form-select">
+            <option value="1.2">Сидячая (x1.2)</option>
+            <option value="1.375" selected>Легкая (x1.375)</option>
+            <option value="1.55">Средняя (x1.55)</option>
+            <option value="1.725">Высокая (x1.725)</option>
+          </select>
+        </div>
+        <div class="input-group">
+          <label>Цель</label>
+          <select id="calc-goal" class="form-select">
+            <option value="-15">Похудение (-15%)</option>
+            <option value="0" selected>Поддержание</option>
+            <option value="10">Набор (+10%)</option>
+          </select>
+        </div>
+      </div>
+
+      <!-- Вручную -->
+      <div id="norm-manual-block" style="display:none;">
+        <div class="input-group"><label>Глобальная цель ККАЛ</label><input type="number" id="manual-cal-global" class="form-input"></div>
+        <div class="input-group"><label>Глобальная цель БЕЛОК (г)</label><input type="number" id="manual-pro-global" class="form-input"></div>
+      </div>
+
+      <button class="btn-primary" onclick="calculateAndSaveNorm()">Сохранить глобальную цель</button>
+      
+      <div class="norm-info-box" style="margin-top: 14px; background: var(--bg-subtle); padding: 10px; border-radius: 8px; border: 1px solid var(--border); font-size: 13px;">
+        <div style="display: flex; justify-content: space-between; margin-bottom: 6px;">
+          <span style="color:var(--text-muted);">Норма (TDEE):</span>
+          <strong id="prof-tdee-val">-</strong>
+        </div>
+        <div style="display: flex; justify-content: space-between; margin-bottom: 6px;">
+          <span style="color:var(--text-muted);">Текущая цель:</span>
+          <strong id="prof-target-cal">-</strong>
+        </div>
+        <div style="display: flex; justify-content: space-between;">
+          <span style="color:var(--text-muted);">Цель по белку:</span>
+          <strong id="prof-target-pro">-</strong>
+        </div>
       </div>
     </div>
   </div>
 </div>
 
-<!-- Модалки -->
-<div class="modal" id="modImport">
-  <div class="modal-content">
-    <h3>📥 Код из чата (JSON)</h3>
-    <div style="display:flex; gap:8px; margin:10px 0;">
-      <button class="btn btn-outline" id="bOvr" style="flex:1; font-size:12px;" onclick="iMd='overwrite'; updBtn()">Заменить день</button>
-      <button class="btn btn-outline" id="bApp" style="flex:1; font-size:12px;" onclick="iMd='append'; updBtn()">Добавить</button>
+<!-- Нижнее меню -->
+<div class="nav-bar">
+  <div class="nav-tab active" onclick="switchTab('diary')"><i data-lucide="book-open" style="width:20px;height:20px;"></i><span>Дневник</span></div>
+  <div class="nav-tab" onclick="switchTab('calendar')"><i data-lucide="calendar" style="width:20px;height:20px;"></i><span>Анализ</span></div>
+  <div class="nav-tab" onclick="switchTab('products')"><i data-lucide="database" style="width:20px;height:20px;"></i><span>База</span></div>
+  <div class="nav-tab" onclick="switchTab('stats')"><i data-lucide="bar-chart-2" style="width:20px;height:20px;"></i><span>Графики</span></div>
+  <div class="nav-tab" onclick="switchTab('profile')"><i data-lucide="user" style="width:20px;height:20px;"></i><span>Профиль</span></div>
+</div>
+
+<!-- Модалка: Импорт JSON -->
+<div class="modal-overlay" id="importModal">
+  <div class="modal-sheet">
+    <h3>📥 Вставка из чата Джемини</h3>
+    <div class="seg-control" style="margin-top:4px;">
+      <button class="seg-btn active" id="mode-overwrite" onclick="setImportMode('overwrite')">Заменить день</button>
+      <button class="seg-btn" id="mode-append" onclick="setImportMode('append')">Добавить прием</button>
     </div>
-    <textarea class="input" id="jsonArea" style="height:120px; font-family:monospace;" placeholder="Вставьте JSON..."></textarea>
-    <div style="display:flex; gap:8px;">
-      <button class="btn btn-outline" onclick="closeModal('modImport')">Отмена</button>
-      <button class="btn" onclick="applyJson()">Применить</button>
+    <textarea class="modal-textarea" id="jsonInput" placeholder='Вставьте сюда JSON...'></textarea>
+    <div class="btn-row">
+      <button class="btn-secondary" onclick="closeImportModal()">Отмена</button>
+      <button class="btn-primary" onclick="applyJsonImport()">Применить</button>
     </div>
   </div>
 </div>
 
-<div class="modal" id="modTarget">
-  <div class="modal-content">
+<!-- Модалка: Цель на день -->
+<div class="modal-overlay" id="targetModal">
+  <div class="modal-sheet">
     <h3>🎯 Цель на этот день</h3>
-    <input type="number" id="tCal" class="input" placeholder="Калории (ккал)">
-    <input type="number" id="tPro" class="input" placeholder="Белок (г)">
-    <div style="display:flex; gap:8px;">
-      <button class="btn btn-outline" onclick="closeModal('modTarget')">Отмена</button>
-      <button class="btn" onclick="saveTarget()">Сохранить</button>
+    <div class="input-group"><label>Калории (ккал)</label><input type="number" id="targetCalInput" class="form-input"></div>
+    <div class="input-group"><label>Белок (г)</label><input type="number" id="targetProInput" class="form-input"></div>
+    <div class="btn-row">
+      <button class="btn-secondary" onclick="closeTargetModal()">Отмена</button>
+      <button class="btn-primary" onclick="saveTargetModal()">Сохранить</button>
     </div>
   </div>
 </div>
 
-<div class="modal" id="modTextExp">
-  <div class="modal-content" style="max-width:90%;">
+<!-- Модалка: Текстовый экспорт -->
+<div class="modal-overlay" id="textExportModal">
+  <div class="modal-sheet" style="max-width: 90%;">
     <h3>📄 Текстовый бэкап</h3>
-    <p style="font-size:11px; color:var(--text-muted); margin-bottom:10px;">Скопируйте текст ниже и сохраните в заметки.</p>
-    <textarea class="input" id="textExpArea" style="height:300px; font-family:monospace; font-size:10px;" readonly></textarea>
-    <button class="btn" onclick="closeModal('modTextExp')">Закрыть</button>
+    <p style="font-size:12px; color:var(--text-muted); margin-bottom:10px;">Скопируйте текст ниже и сохраните его в заметки.</p>
+    <textarea class="text-export-area" id="textExpArea" readonly></textarea>
+    <button class="btn-primary" style="margin-top: 10px;" onclick="closeTextExportModal()">Закрыть</button>
   </div>
 </div>
-
-<!-- Навигация -->
-<div class="nav">
-  <div class="nav-item active" onclick="showTab('tab-diary', this)"><i data-lucide="book-open"></i>Дневник</div>
-  <div class="nav-item" onclick="showTab('tab-calendar', this)"><i data-lucide="calendar"></i>Анализ</div>
-  <div class="nav-item" onclick="showTab('tab-db', this)"><i data-lucide="database"></i>База</div>
-  <div class="nav-item" onclick="showTab('tab-profile', this)"><i data-lucide="user"></i>Настройки</div>
-</div>
-
 <script>
-  // === БАЗА И ИНИЦИАЛИЗАЦИЯ ===
-  const DEF = { theme: "light", cDate: new Date().toISOString().split("T")[0], u: { gender: "m", age:25, weight:75, height:178, act:1.375, def:-15, tCal:1900, tPro:130, tdee:2200 }, s: { time: "", last: "" }, days: {}, db: {} };
-  let S; try { S = JSON.parse(localStorage.getItem("kbju_state")) || DEF; } catch(e) { S = DEF; }
-  let cD = S.cDate || new Date().toISOString().split("T")[0];
-  let iMd = "overwrite", chart = null, cM = new Date().getMonth(), cY = new Date().getFullYear(), selD = new Set();
+  // === 1. СТАБИЛЬНОЕ ЛОКАЛЬНОЕ ХРАНИЛИЩЕ ===
+  const DEFAULT_STATE = { 
+    theme: "light",
+    currentDate: new Date().toISOString().split("T")[0], 
+    userProfile: { 
+      mode: "auto", 
+      gender: "m", 
+      age: 25, 
+      weight: 75, 
+      height: 178, 
+      activity: 1.375, 
+      goal: -15, 
+      tdee: 2200, // Теоретическая норма
+      defaultTargetCal: 1900, // Цель с учетом дефицита
+      defaultTargetPro: 130 
+    }, 
+    settings: { backupTime: "", lastNotified: "" },
+    days: {}, 
+    productsDb: {} 
+  };
   
-  const motivs = ["☀️ Отличный старт! Жду вкусняшек 😋", "🔥 Топим жир! Идём по плану 💪", "😎 Идеально вписываемся. Так держать!", "🎯 Ювелирная точность! КБЖУ в норме.", "🙈 Чуть перебрали, но мы же живые люди! Завтра компенсируем 🏃‍♂️", "🥗 Питаемся вкусно и правильно!"];
-  
-  function save() { try { S.cDate = cD; localStorage.setItem("kbju_state", JSON.stringify(S)); } catch(e){ alert("Ошибка памяти!"); } }
-  
-  function toggleTheme() { S.theme = S.theme==="dark"?"light":"dark"; applyTheme(); save(); }
-  function applyTheme() { document.documentElement.setAttribute("data-theme", S.theme||"light"); document.getElementById("themeIcon").setAttribute("data-lucide", S.theme==="dark"?"sun":"moon"); lucide.createIcons(); }
-  
-  function showTab(id, el) { 
-    document.querySelectorAll(".tab").forEach(t => t.classList.remove("active")); document.getElementById(id).classList.add("active");
-    document.querySelectorAll(".nav-item").forEach(t => t.classList.remove("active")); el.classList.add("active");
-    if(id==='tab-diary') rDay(); if(id==='tab-calendar') rCal(); if(id==='tab-db') rDb(); if(id==='tab-profile') rProf();
-  }
-  function openModal(id) { document.getElementById(id).classList.add("active"); }
-  function closeModal(id) { document.getElementById(id).classList.remove("active"); }
-  
-  // === ДНЕВНИК ===
-  function shiftDate(d) { let o = new Date(cD); o.setDate(o.getDate()+d); cD = o.toISOString().split("T")[0]; rDay(); }
-  function rDay() {
-    let d = S.days[cD] || { meals: [] }, tC = d.tarC || S.u.tCal, tP = d.tarP || S.u.tPro;
-    document.getElementById("lblDate").innerText = cD.split("-").reverse().join(".");
-    
-    let k=0, p=0, f=0, c=0;
-    d.meals.forEach(m => m.items.forEach(i => { k+=i.cal||0; p+=i.p||0; f+=i.f||0; c+=i.c||0; }));
-    
-    document.getElementById("vCon").innerText = Math.round(k); document.getElementById("vTar").innerText = tC; document.getElementById("vRem").innerText = Math.max(0, Math.round(tC-k));
-    document.getElementById("vProg").style.width = `${Math.min(100, (k/tC)*100)}%`;
-    document.getElementById("vMotiv").innerText = motivs[k===0 ? 0 : k>tC ? 4 : k>tC*0.9 ? 3 : k>tC*0.5 ? 2 : 1];
-    
-    document.getElementById("vP").innerText = p.toFixed(1); document.getElementById("vF").innerText = f.toFixed(1); document.getElementById("vC").innerText = c.toFixed(1);
-    let s = (p*4)+(f*9)+(c*4)||1;
-    document.getElementById("vPp").innerText = `${Math.round(p*4/s*100)}%`; document.getElementById("vFp").innerText = `${Math.round(f*9/s*100)}%`; document.getElementById("vCp").innerText = `${Math.round(c*4/s*100)}%`;
-    document.getElementById("vKcalChart").innerHTML = `${Math.round(k)}<br>ккал`;
-    
-    if(chart) { chart.data.datasets[0].data = k===0?[1,1,1]:[p*4,f*9,c*4]; chart.data.datasets[0].backgroundColor = k===0?["#e2e8f0","#e2e8f0","#e2e8f0"]:["#3b82f6","#f59e0b","#10b981"]; chart.update(); }
-    else { chart = new Chart(document.getElementById("chartDoughnut"), { type: "doughnut", data: { datasets: [{ data: k===0?[1,1,1]:[p*4,f*9,c*4], backgroundColor: k===0?["#e2e8f0","#e2e8f0","#e2e8f0"]:["#3b82f6","#f59e0b","#10b981"], borderWidth:0, cutout:"75%"}] }, options: { plugins: { legend: { display:false }, tooltip: { enabled:false } } } }); }
-    
-    let html = "";
-    if(!d.meals.length) html = `<div style="text-align:center;color:var(--text-muted);font-size:12px;padding:20px;">Нет записей. Добавьте меню из чата! 🍕</div>`;
-    else d.meals.forEach((m, mI) => {
-      let mK = 0, cls = m.col ? "collapsed" : "";
-      let iH = m.items.map((i, iI) => { mK+=i.cal||0; return `<div class="food-item"><div><div style="font-size:13px;font-weight:700;">${i.name}</div><div style="font-size:11px;color:var(--text-muted)">Б:${i.p} Ж:${i.f} У:${i.c}</div></div><div style="display:flex;align-items:center;gap:10px"><div style="font-weight:700">${i.cal} ккал</div><i data-lucide="trash" style="color:var(--accent-red);cursor:pointer;width:14px;" onclick="delI(${mI},${iI})"></i></div></div>`; }).join("");
-      html += `<div class="meal-card"><div class="meal-head ${cls}" onclick="tCol(${mI})"><span><i data-lucide="chevron-down" style="width:14px;vertical-align:middle;transition:0.2s"></i> ${m.meal}</span><span style="color:var(--accent-orange);background:rgba(245,158,11,0.1);padding:2px 8px;border-radius:10px;">${Math.round(mK)} ккал</span></div><div class="meal-body ${cls}">${iH}</div></div>`;
-    });
-    document.getElementById("mealsList").innerHTML = html;
-    lucide.createIcons();
-  }
-  function tCol(mI) { S.days[cD].meals[mI].col = !S.days[cD].meals[mI].col; save(); rDay(); }
-  function delI(mI, iI) { if(confirm("Удалить блюдо? 🗑️")){ S.days[cD].meals[mI].items.splice(iI,1); if(!S.days[cD].meals[mI].items.length) S.days[cD].meals.splice(mI,1); save(); rDay(); } }
-  function deleteDay() { if(confirm("Удалить весь день целиком? 🚨")){ delete S.days[cD]; save(); rDay(); } }
-  
-  function updBtn() { document.getElementById("bOvr").className = iMd==='overwrite' ? "btn" : "btn btn-outline"; document.getElementById("bApp").className = iMd==='append' ? "btn" : "btn btn-outline"; }
-  async function pasteClipboard() { try { document.getElementById("jsonArea").value = await navigator.clipboard.readText(); applyJson(); } catch(e){ openModal('modImport'); } }
-  function applyJson() {
-    try {
-      let p = JSON.parse(document.getElementById("jsonArea").value.match(/\{[\s\S]*\}/)[0]);
-      let tD = p.date || cD; cD = tD;
-      let d = S.days[tD] || { meals: [] };
-      if(iMd === "overwrite") { d.tarC = p.target_calories||S.u.tCal; d.meals = p.meals||[]; }
-      else {
-        (p.meals||[]).forEach(nM => {
-          let m = d.meals.find(x=>x.meal===nM.meal); if(!m){ m={meal:nM.meal,items:[]}; d.meals.push(m); }
-          (nM.items||[]).forEach(nI => { let ix = m.items.findIndex(x=>x.name===nI.name); if(ix>=0) m.items[ix]=nI; else m.items.push(nI); });
-        });
-      }
-      S.days[tD] = d;
-      d.meals.forEach(m => m.items.forEach(i => { if(i.name) S.db[i.name] = {cal:i.cal||0, p:i.p||0, f:i.f||0, c:i.c||0}; }));
-      save(); closeModal('modImport'); document.getElementById("jsonArea").value=""; rDay();
-    } catch(e) { alert("Ошибка JSON! Скопируйте блок из чата полностью."); }
+  let AppState;
+  try { 
+    AppState = JSON.parse(localStorage.getItem("kbju_tracker_stable")) || DEFAULT_STATE; 
+    // На всякий случай проверяем наличие новых полей профиля
+    if (!AppState.userProfile.tdee) AppState.userProfile.tdee = 2200;
+  } catch (e) { 
+    AppState = DEFAULT_STATE; 
   }
   
-  function openTargetModal() { document.getElementById("tCal").value = S.days[cD]?.tarC||S.u.tCal; document.getElementById("tPro").value = S.days[cD]?.tarP||S.u.tPro; openModal('modTarget'); }
-  function saveTarget() { if(!S.days[cD]) S.days[cD]={meals:[]}; S.days[cD].tarC=Number(document.getElementById("tCal").value); S.days[cD].tarP=Number(document.getElementById("tPro").value); save(); closeModal('modTarget'); rDay(); }
+  let currentDate = AppState.currentDate || new Date().toISOString().split("T")[0];
+  let importMode = "overwrite";
+  let calcGender = AppState.userProfile?.gender || "m";
+  let normMode = AppState.userProfile?.mode || "auto";
+  let collapsedMeals = new Set(); // Хранит названия свернутых приемов пищи
+  
+  let doughnutChart = null;
+  let weekChart = null;
+  let calViewYear = new Date().getFullYear();
+  let calViewMonth = new Date().getMonth();
+  let selectedCalDates = new Set();
 
-  // === КАЛЕНДАРЬ И ДЕФИЦИТ ===
-  function renderCal(dir=0) {
-    cM+=dir; if(cM<0){cM=11;cY--;} else if(cM>11){cM=0;cY++;}
-    document.getElementById("calTitle").innerText = `${["Янв","Фев","Мар","Апр","Май","Июн","Июл","Авг","Сен","Окт","Ноя","Дек"][cM]} ${cY}`;
-    let g = document.getElementById("calDays"); g.innerHTML="";
-    let fD = (new Date(cY, cM, 1).getDay()+6)%7, tD = new Date(cY, cM+1, 0).getDate();
-    for(let i=0;i<fD;i++) g.innerHTML += `<div class="cal-cell empty"></div>`;
-    for(let i=1;i<=tD;i++) {
-      let ds = `${cY}-${String(cM+1).padStart(2,'0')}-${String(i).padStart(2,'0')}`;
-      let c = `cal-cell ${S.days[ds]&&S.days[ds].meals.length?'has-data':''} ${ds===cD?'today':''} ${selD.has(ds)?'selected':''}`;
-      g.innerHTML += `<div class="${c}" onclick="tS('${ds}')">${i} ${S.days[ds]&&S.days[ds].meals.length?'<div class="dot"></div>':''}</div>`;
+  const motivationalQuotes = [
+    "☀️ Начинаем день с чистого листа! Что вкусненького съедим?",
+    "🔥 Отличный темп! Топим жир и идем к цели.",
+    "😎 Идем по плану! Место для вкусняшек ещё есть.",
+    "🎯 Ювелирная точность! КБЖУ в идеале.",
+    "🙈 Чуть перебрали... Ничего страшного, завтра компенсируем! 🏃‍♂️",
+    "🥗 Овощей не забыли поесть? Вы супер!"
+  ];
+
+  function saveState() {
+    try { 
+      AppState.currentDate = currentDate;
+      localStorage.setItem("kbju_tracker_stable", JSON.stringify(AppState)); 
+    } catch (e) { 
+      alert("⚠️ Ошибка: Память телефона переполнена! Почистите кэш Safari."); 
     }
-    calcAvg();
   }
-  function tS(d) { selD.has(d)?selD.delete(d):selD.add(d); renderCal(); }
-  function selCal(m) {
-    selD.clear(); let t=new Date(cD);
-    if(m==='week') for(let i=0;i<7;i++){ let d=new Date(t); d.setDate(t.getDate()-i); selD.add(d.toISOString().split("T")[0]); }
-    if(m==='month') { let tD=new Date(cY,cM+1,0).getDate(); for(let i=1;i<=tD;i++){ let s=`${cY}-${String(cM+1).padStart(2,"0")}-${String(i).padStart(2,"0")}`; if(S.days[s]&&S.days[s].meals.length) selD.add(s); } }
-    renderCal();
+
+  // === 2. ТЕМА И УВЕДОМЛЕНИЯ ===
+  function applyTheme() {
+    document.documentElement.setAttribute("data-theme", AppState.theme || "light");
+    const icon = document.getElementById("theme-icon");
+    if (icon) {
+        icon.setAttribute("data-lucide", AppState.theme === "dark" ? "sun" : "moon");
+        lucide.createIcons();
+    }
   }
-  function calcAvg() {
-    document.getElementById("calCount").innerText = `(${selD.size} дн.)`;
-    let k=0, p=0, f=0, c=0, tdeeSum=0, count=0;
-    selD.forEach(d => {
-      let dy = S.days[d]; if(dy && dy.meals.length){
-        count++; tdeeSum += S.u.tdee || S.u.tCal; // Считаем от теоретической нормы (или цели, если нормы нет)
-        dy.meals.forEach(m=>m.items.forEach(i=>{ k+=i.cal||0; p+=i.p||0; f+=i.f||0; c+=i.c||0; }));
+
+  function toggleTheme() {
+    AppState.theme = AppState.theme === "dark" ? "light" : "dark";
+    applyTheme(); 
+    saveState();
+  }
+
+  function saveNotificationSettings() {
+    const time = document.getElementById("backup-time-input").value;
+    if (time) {
+        Notification.requestPermission().then(perm => {
+            if (perm === "granted") {
+                if (!AppState.settings) AppState.settings = {};
+                AppState.settings.backupTime = time;
+                saveState();
+                alert(`🔔 Уведомление о бэкапе установлено на ${time}`);
+            } else {
+                alert("Пожалуйста, разрешите уведомления в настройках телефона/браузера.");
+            }
+        });
+    }
+  }
+  
+  setInterval(() => {
+    if (!AppState.settings?.backupTime) return;
+    const now = new Date();
+    const hhmm = now.getHours().toString().padStart(2,'0') + ':' + now.getMinutes().toString().padStart(2,'0');
+    const todayStr = now.toISOString().split('T')[0];
+    
+    if (hhmm === AppState.settings.backupTime && AppState.settings.lastNotified !== todayStr) {
+      if (Notification.permission === "granted") {
+        new Notification("Время бэкапа! 💾", { body: "Откройте трекер и сделайте экспорт, чтобы не потерять данные." });
+        AppState.settings.lastNotified = todayStr;
+        saveState();
       }
-    });
-    let div = count||1;
-    let def = tdeeSum - k; let avgDef = Math.round(def/div);
-    
-    let el = document.getElementById("calAvgDef");
-    if(count===0){ el.innerText="0 ккал/день"; el.style.color="var(--text-muted)"; }
-    else if(def>=0){ el.innerText=`-${avgDef} ккал/день (Дефицит)`; el.style.color="var(--accent-green)"; }
-    else { el.innerText=`+${Math.abs(avgDef)} ккал/день (Профицит)`; el.style.color="var(--accent-red)"; }
-    
-    document.getElementById("calTdeeInfo").innerText = `Ваша норма TDEE: ${S.u.tdee||S.u.tCal} ккал. Съедено в ср: ${Math.round(k/div)} ккал.`;
-    document.getElementById("cA").innerText=Math.round(k/div); document.getElementById("cP").innerText=Math.round(p/div); document.getElementById("cF").innerText=Math.round(f/div);
-  }
-
-  // === БАЗА И ПРОФИЛЬ ===
-  function rDb() {
-    let q = document.getElementById("searchInp").value.toLowerCase(), h = "";
-    let ks = Object.keys(S.db).filter(x=>x.toLowerCase().includes(q)).sort();
-    ks.forEach(k => { let p=S.db[k]; h+=`<div class="card" style="padding:12px;margin-bottom:8px;display:flex;justify-content:space-between;align-items:center;"><div><div style="font-weight:700;font-size:14px;">${k}</div><div style="font-size:11px;color:var(--text-muted)"><span style="color:var(--accent-orange);font-weight:700">${p.cal} ккал</span> Б:${p.p} Ж:${p.f} У:${p.c}</div></div><button class="btn btn-outline" style="width:auto;padding:6px 12px;font-size:12px;" onclick="navigator.clipboard.writeText('${k.replace(/'/g,"\\'")} - ${p.cal} ккал (Б${p.p} Ж${p.f} У${p.c})')">Копия</button></div>` });
-    document.getElementById("dbList").innerHTML = h || `<div class="empty-state" style="padding:20px;text-align:center;color:var(--text-muted);font-size:12px;">Пусто</div>`;
-  }
-  
-  function rProf() {
-    document.getElementById("gM").className = S.u.gender==='m'?'btn':'btn btn-outline'; document.getElementById("gF").className = S.u.gender==='f'?'btn':'btn btn-outline';
-    document.getElementById("pAge").value=S.u.age; document.getElementById("pW").value=S.u.weight; document.getElementById("pH").value=S.u.height;
-    document.getElementById("pAct").value=S.u.act; document.getElementById("pDef").value=S.u.def;
-    document.getElementById("lblTdee").innerText = `${S.u.tdee||'-'} ккал (столько вы тратите)`;
-    document.getElementById("lblGoal").innerText = `${S.u.tCal||'-'} ккал (ваша цель с учетом %!)`;
-    document.getElementById("notifTime").value = S.s.time;
-  }
-  
-  function setG(g) { S.u.gender=g; rProf(); }
-  function calcNorm() {
-    let w=Number(document.getElementById("pW").value), h=Number(document.getElementById("pH").value), a=Number(document.getElementById("pAge").value), act=Number(document.getElementById("pAct").value), def=Number(document.getElementById("pDef").value);
-    let bmr = (10*w)+(6.25*h)-(5*a) + (S.u.gender==='m'?5:-161);
-    S.u.tdee = Math.round(bmr*act); // Чистая норма поддержания
-    S.u.tCal = Math.round(S.u.tdee * (1 + (def/100))); // Цель с дефицитом/профицитом
-    S.u.tPro = Math.round(w*1.8);
-    S.u.age=a; S.u.weight=w; S.u.height=h; S.u.act=act; S.u.def=def;
-    if(S.days[cD]) S.days[cD].tarC = S.u.tCal;
-    save(); rProf(); rDay(); alert(`✅ Норма TDEE: ${S.u.tdee} ккал.\nЦель установлена на: ${S.u.tCal} ккал.`);
-  }
-
-  // === ЭКСПОРТ И УВЕДОМЛЕНИЯ ===
-  function saveNotif() {
-    let t = document.getElementById("notifTime").value; if(!t) return;
-    Notification.requestPermission().then(p => { if(p==="granted"){ S.s.time=t; save(); alert(`🔔 Уведомления включены на ${t}`); } else alert("Разрешите пуши в настройках браузера!"); });
-  }
-  setInterval(()=>{
-    if(!S.s.time) return; let n=new Date(), t=n.getHours().toString().padStart(2,'0')+':'+n.getMinutes().toString().padStart(2,'0'), d=n.toISOString().split('T')[0];
-    if(t===S.s.time && S.s.last!==d && Notification.permission==="granted") { new Notification("Бэкап КБЖУ 💾", {body:"Пора выгрузить JSON, чтобы данные не пропали!"}); S.s.last=d; save(); }
+    }
   }, 60000);
 
-  function exportJson() { let a = document.createElement("a"); a.href = URL.createObjectURL(new Blob([JSON.stringify(S)], {type:"application/json"})); a.download = `kbju_${cD}.json`; a.click(); }
-  function importJsonFile(e) { let r = new FileReader(); r.onload = ev => { try { S = JSON.parse(ev.target.result); save(); location.reload(); } catch(err){alert("Ошибка файла");} }; r.readAsText(e.target.files[0]); }
-  
-  function exportExcel() {
-    let wb = XLSX.utils.book_new(), lR=[["Дата","Прием","Блюдо","Ккал","Б","Ж","У"]], pR=[["Продукт","Ккал","Б","Ж","У"]];
-    Object.keys(S.days).forEach(d => S.days[d].meals.forEach(m => m.items.forEach(i => lR.push([d,m.meal,i.name,i.cal,i.p,i.f,i.c]))));
-    Object.keys(S.db).forEach(k => pR.push([k,S.db[k].cal,S.db[k].p,S.db[k].f,S.db[k].c]));
-    XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(lR), "Дневник"); XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(pR), "База"); XLSX.writeFile(wb, `kbju_${cD}.xlsx`);
-  }
-  function importExcelFile(e) {
-    let r = new FileReader(); r.onload = ev => { try {
-      let wb = XLSX.read(new Uint8Array(ev.target.result), {type:"array"});
-      if(wb.Sheets["Дневник"]) XLSX.utils.sheet_to_json(wb.Sheets["Дневник"]).forEach(r => {
-        let dt=r["Дата"], ml=r["Прием"], nm=r["Блюдо"];
-        if(dt&&nm){ if(!S.days[dt]) S.days[dt]={meals:[]}; let m=S.days[dt].meals.find(x=>x.meal===ml); if(!m){m={meal:ml,items:[]};S.days[dt].meals.push(m);} m.items.push({name:nm,cal:r["Ккал"]||0,p:r["Б"]||0,f:r["Ж"]||0,c:r["У"]||0}); }
+  // === 3. ДНЕВНИК И УДАЛЕНИЕ ===
+  function syncProductsDatabase(dayData) {
+    if (!AppState.productsDb) AppState.productsDb = {};
+    if (!dayData || !dayData.meals) return;
+    dayData.meals.forEach(m => {
+      (m.items || []).forEach(item => {
+        if (item.name) {
+          AppState.productsDb[item.name] = { 
+            cal: Number(item.cal) || 0, 
+            p: Number(item.p) || 0, 
+            f: Number(item.f) || 0, 
+            c: Number(item.c) || 0, 
+            lastUsed: dayData.date || currentDate 
+          };
+        }
       });
-      if(wb.Sheets["База"]) XLSX.utils.sheet_to_json(wb.Sheets["База"]).forEach(r => { if(r["Продукт"]) S.db[r["Продукт"]]={cal:r["Ккал"]||0,p:r["Б"]||0,f:r["Ж"]||0,c:r["У"]||0}; });
-      save(); location.reload();
-    } catch(err){alert("Ошибка Excel");} }; r.readAsArrayBuffer(e.target.files[0]);
+    });
+    saveState();
   }
 
+  function getMotivationalText(consumed, target) {
+    if (consumed === 0) return motivationalQuotes[0];
+    const diff = target - consumed;
+    if (diff < 0) return motivationalQuotes[4]; // Перебор
+    if (diff === 0 || diff < 50) return motivationalQuotes[3]; // Идеал
+    if (diff > target * 0.5) return motivationalQuotes[1]; // Много осталось
+    return motivationalQuotes[2]; // Идем по плану
+  }
+
+  function toggleMealCollapse(mealName) {
+    if (collapsedMeals.has(mealName)) {
+      collapsedMeals.delete(mealName);
+    } else {
+      collapsedMeals.add(mealName);
+    }
+    renderDay();
+  }
+
+  function deleteFoodItem(mealName, itemIdx) {
+    if (confirm("Удалить это блюдо из дневника? 🗑️")) {
+        let meal = AppState.days[currentDate].meals.find(m => m.meal === mealName);
+        if (meal) {
+            meal.items.splice(itemIdx, 1);
+            // Если прием пищи стал пустым - удаляем и его
+            if (meal.items.length === 0) {
+              AppState.days[currentDate].meals = AppState.days[currentDate].meals.filter(m => m.meal !== mealName);
+            }
+            saveState(); 
+            renderDay();
+        }
+    }
+  }
+
+  function deleteCurrentDay() {
+    if (confirm("🚨 Вы уверены, что хотите полностью удалить этот день? Это действие нельзя отменить!")) {
+        delete AppState.days[currentDate];
+        saveState(); 
+        renderDay();
+    }
+  }
+
+  function renderDay() {
+    const dayData = AppState.days[currentDate] || { 
+      date: currentDate, 
+      target_calories: AppState.userProfile?.defaultTargetCal || 1900, 
+      meals: [] 
+    };
+    
+    // Форматирование даты
+    const d = new Date(currentDate);
+    const months = ["января","февраля","марта","апреля","мая","июня","июля","августа","сентября","октября","ноября","декабря"];
+    const isToday = new Date().toISOString().split("T")[0] === currentDate;
+    document.getElementById("currentDateLabel").innerText = isToday ? "Сегодня" : `${d.getDate()} ${months[d.getMonth()]}`;
+
+    // Подсчет БЖУ
+    let totalCal = 0, totalP = 0, totalF = 0, totalC = 0;
+    (dayData.meals || []).forEach(m => {
+      (m.items || []).forEach(i => { 
+        totalCal += Number(i.cal) || 0; 
+        totalP += Number(i.p) || 0; 
+        totalF += Number(i.f) || 0; 
+        totalC += Number(i.c) || 0; 
+      });
+    });
+
+    const targetCal = dayData.target_calories || AppState.userProfile?.defaultTargetCal || 1900;
+    document.getElementById("val-consumed").innerText = Math.round(totalCal);
+    document.getElementById("val-target").innerText = targetCal;
+    document.getElementById("val-remaining").innerText = Math.round(Math.max(0, targetCal - totalCal));
+    document.getElementById("cal-progress").style.width = `${Math.min(100, Math.round((totalCal / targetCal) * 100))}%`;
+    document.getElementById("motivational-text").innerText = getMotivationalText(totalCal, targetCal);
+
+    document.getElementById("val-protein").innerText = `${totalP.toFixed(1)} г`;
+    document.getElementById("val-fat").innerText = `${totalF.toFixed(1)} г`;
+    document.getElementById("val-carbs").innerText = `${totalC.toFixed(1)} г`;
+
+    // Расчет процентов для графика FatSecret
+    const calP = totalP * 4, calF = totalF * 9, calC = totalC * 4;
+    const sum = calP + calF + calC || 1;
+    document.getElementById("pct-protein").innerText = `(${Math.round((calP/sum)*100)}%)`;
+    document.getElementById("pct-fat").innerText = `(${Math.round((calF/sum)*100)}%)`;
+    document.getElementById("pct-carbs").innerText = `(${Math.round((calC/sum)*100)}%)`;
+    document.getElementById("macroTotalKcal").innerHTML = `${Math.round(totalCal)}<br><span style="font-size:9px;color:var(--text-muted);">ккал</span>`;
+
+    renderDoughnut(calP, calF, calC);
+
+    // Отрисовка блюд
+    const container = document.getElementById("mealsContainer");
+    if (!dayData.meals || dayData.meals.length === 0) {
+      container.innerHTML = `<div class="empty-state">Пока ничего не съедено.<br>Нажмите «Добавить из чата»! 🍽️</div>`;
+    } else {
+      container.innerHTML = dayData.meals.map(m => {
+        let mealCal = 0;
+        const isCollapsed = collapsedMeals.has(m.meal);
+        
+        const itemsHtml = (m.items || []).map((i, idx) => {
+          mealCal += Number(i.cal) || 0;
+          return `
+            <div class="food-item">
+              <div>
+                <div class="food-name">${i.name}</div>
+                <div class="food-macros">Б: ${i.p}г • Ж: ${i.f}г • У: ${i.c}г</div>
+              </div>
+              <div class="food-cal-block">
+                <div class="food-cal">${i.cal} <span style="font-size:11px;font-weight:500;color:var(--text-muted)">ккал</span></div>
+                <button class="del-item-btn" onclick="deleteFoodItem('${m.meal}', ${idx})">
+                  <i data-lucide="trash-2" style="width:14px;height:14px;"></i>
+                </button>
+              </div>
+            </div>`;
+        }).join("");
+        
+        return `
+          <div class="meal-group ${isCollapsed ? 'collapsed' : ''}">
+            <div class="meal-group-header" onclick="toggleMealCollapse('${m.meal}')">
+              <span class="meal-group-title">
+                <i data-lucide="chevron-down" class="chevron-icon" style="width:16px;height:16px;"></i> ${m.meal}
+              </span>
+              <span class="meal-group-cals">${Math.round(mealCal)} ккал</span>
+            </div>
+            <div class="meal-items-container">${itemsHtml}</div>
+          </div>`;
+      }).join("");
+    }
+    lucide.createIcons();
+  }
+
+  function renderDoughnut(pCal, fCal, cCal) {
+    const ctx = document.getElementById("macroDoughnut").getContext("2d");
+    const data = (pCal === 0 && fCal === 0 && cCal === 0) ? [1,1,1] : [pCal, fCal, cCal];
+    const colors = (pCal === 0 && fCal === 0 && cCal === 0) ? ["#E2E8F0","#E2E8F0","#E2E8F0"] : ["#3B82F6", "#F59E0B", "#10B981"];
+    
+    if (doughnutChart) { 
+      doughnutChart.data.datasets[0].data = data; 
+      doughnutChart.data.datasets[0].backgroundColor = colors; 
+      doughnutChart.update(); 
+    } else { 
+      doughnutChart = new Chart(ctx, { 
+        type: "doughnut", 
+        data: { datasets: [{ data: data, backgroundColor: colors, borderWidth: 0, cutout: "76%" }] }, 
+        options: { plugins: { legend: { display: false }, tooltip: { enabled: false } } } 
+      }); 
+    }
+  }
+
+  // === 4. ИМПОРТ JSON ИЗ ЧАТА ===
+  function applyJsonImport() {
+    try {
+      const match = document.getElementById("jsonInput").value.trim().match(/\{[\s\S]*\}/);
+      if (!match) throw new Error("JSON код не найден в тексте. Убедитесь, что скопировали всё правильно.");
+      
+      const parsed = JSON.parse(match[0]);
+      const targetDate = parsed.date || currentDate;
+      currentDate = targetDate; // Переключаемся на дату из JSON
+      
+      let day = AppState.days[targetDate] || { 
+        date: targetDate, 
+        target_calories: parsed.target_calories || AppState.userProfile?.defaultTargetCal || 1900, 
+        meals: [] 
+      };
+
+      if (importMode === "overwrite") {
+        day.target_calories = parsed.target_calories || day.target_calories;
+        day.meals = parsed.meals || [];
+      } else {
+        // Режим умного слияния (Append)
+        (parsed.meals || []).forEach(newMeal => {
+          let mObj = day.meals.find(m => m.meal.toLowerCase() === newMeal.meal.toLowerCase());
+          if (!mObj) { 
+            mObj = { meal: newMeal.meal, items: [] }; 
+            day.meals.push(mObj); 
+          }
+          (newMeal.items || []).forEach(nItem => {
+            const idx = mObj.items.findIndex(i => i.name.trim().toLowerCase() === nItem.name.trim().toLowerCase());
+            if (idx >= 0) {
+              mObj.items[idx] = nItem; // Обновляем граммовки
+            } else {
+              mObj.items.push(nItem); // Добавляем новое
+            }
+          });
+        });
+      }
+      
+      AppState.days[targetDate] = day;
+      syncProductsDatabase(day);
+      saveState();
+      
+      closeImportModal(); 
+      document.getElementById("jsonInput").value = "";
+      renderDay();
+      alert("✅ Дневник успешно обновлен!");
+    } catch (e) { 
+      alert("Ошибка парсинга: " + e.message); 
+    }
+  }
+
+  // === 5. КАЛЕНДАРЬ И ПРАВИЛЬНЫЙ ДЕФИЦИТ ===
+  function renderCalendar() {
+    const monthNames = ["Январь","Февраль","Март","Апрель","Май","Июнь","Июль","Август","Сентябрь","Октябрь","Ноябрь","Декабрь"];
+    document.getElementById("calMonthTitle").innerText = `${monthNames[calViewMonth]} ${calViewYear}`;
+    
+    const grid = document.getElementById("calGrid"); 
+    grid.innerHTML = "";
+    
+    const firstDay = (new Date(calViewYear, calViewMonth, 1).getDay() + 6) % 7;
+    const totalDays = new Date(calViewYear, calViewMonth + 1, 0).getDate();
+    
+    for (let i = 0; i < firstDay; i++) {
+      grid.appendChild(Object.assign(document.createElement("div"), {className: "cal-cell empty"}));
+    }
+    
+    for (let day = 1; day <= totalDays; day++) {
+      const dStr = `${calViewYear}-${String(calViewMonth + 1).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
+      const c = document.createElement("div"); 
+      c.className = "cal-cell"; 
+      c.innerText = day;
+      
+      if (AppState.days[dStr] && AppState.days[dStr].meals.length > 0) { 
+        c.classList.add("has-data"); 
+        c.appendChild(Object.assign(document.createElement("div"), {className: "cal-dot"})); 
+      }
+      if (dStr === currentDate) c.classList.add("today");
+      if (selectedCalDates.has(dStr)) c.classList.add("selected");
+      
+      c.onclick = () => { 
+        if (selectedCalDates.has(dStr)) selectedCalDates.delete(dStr);
+        else selectedCalDates.add(dStr); 
+        renderCalendar(); 
+      };
+      grid.appendChild(c);
+    }
+    
+    // Подсчет среднего и дефицита (ОТ ТЕОРЕТИЧЕСКОЙ НОРМЫ TDEE)
+    let sumCal = 0, sumP = 0, sumF = 0, sumC = 0;
+    let sumTdee = 0; // Сумма норм за выбранные дни
+    let daysWithMeals = 0;
+    
+    Array.from(selectedCalDates).forEach(dt => {
+      const d = AppState.days[dt];
+      if (d && d.meals && d.meals.length > 0) { 
+        daysWithMeals++; 
+        // Берем норму из профиля (или дефолт)
+        sumTdee += AppState.userProfile?.tdee || AppState.userProfile?.defaultTargetCal || 2200;
+        
+        d.meals.forEach(m => m.items.forEach(i => { 
+          sumCal += Number(i.cal) || 0; 
+          sumP += Number(i.p) || 0; 
+          sumF += Number(i.f) || 0; 
+          sumC += Number(i.c) || 0; 
+        })); 
+      }
+    });
+    
+    const div = daysWithMeals || 1; // Делим только на дни, где мы реально ели
+    const totalDeficit = sumTdee - sumCal; // Положительное число = недоели (Дефицит)
+    const avgDeficit = Math.round(totalDeficit / div);
+    
+    document.getElementById("avgSelectedCount").innerText = `Выбрано дней: ${selectedCalDates.size}`;
+    
+    const defEl = document.getElementById("total-deficit");
+    const avgDefEl = document.getElementById("avg-deficit");
+    
+    if (daysWithMeals === 0) { 
+      defEl.innerText = "0 ккал"; 
+      defEl.style.color = "var(--text-muted)"; 
+      avgDefEl.innerText = `Выберите дни с записями`;
+    } else if (totalDeficit > 0) { 
+      defEl.innerText = `-${totalDeficit} ккал (Дефицит)`; 
+      defEl.style.color = "var(--accent-green)"; 
+      avgDefEl.innerText = `В среднем вы недоедаете: ${avgDeficit} ккал / день`;
+    } else { 
+      defEl.innerText = `+${Math.abs(totalDeficit)} ккал (Профицит)`; 
+      defEl.style.color = "var(--accent-red)"; 
+      avgDefEl.innerText = `В среднем вы переедаете: ${Math.abs(avgDeficit)} ккал / день`;
+    }
+
+    document.getElementById("avg-cal").innerText = Math.round(sumCal / div);
+    document.getElementById("avg-pro").innerText = `${(sumP / div).toFixed(1)} г`;
+    document.getElementById("avg-fat").innerText = `${(sumF / div).toFixed(1)} г`;
+  }
+
+  function changeCalMonth(d) { 
+    calViewMonth += d; 
+    if (calViewMonth < 0) { calViewMonth = 11; calViewYear--; } 
+    else if (calViewMonth > 11) { calViewMonth = 0; calViewYear++; } 
+    renderCalendar(); 
+  }
+
+  function selectCalendarPreset(p) { 
+    selectedCalDates.clear(); 
+    const t = new Date(currentDate); 
+    
+    if (p === 'week') {
+      for (let i = 0; i < 7; i++) {
+        let d = new Date(t); d.setDate(t.getDate() - i); 
+        selectedCalDates.add(d.toISOString().split("T")[0]);
+      }
+    } else if (p === 'all_month') {
+      const tD = new Date(calViewYear, calViewMonth + 1, 0).getDate(); 
+      for (let i = 1; i <= tD; i++) {
+        let s = `${calViewYear}-${String(calViewMonth+1).padStart(2,"0")}-${String(i).padStart(2,"0")}`; 
+        if (AppState.days[s] && AppState.days[s].meals.length > 0) selectedCalDates.add(s);
+      }
+    } 
+    renderCalendar(); 
+  }
+  
+  function clearCalendarSelection() { 
+    selectedCalDates.clear(); 
+    renderCalendar(); 
+  }
+
+  // === 6. БАЗА ПРОДУКТОВ ===
+  function renderProductDatabase() {
+    const q = document.getElementById("productSearch").value.toLowerCase();
+    const c = document.getElementById("productsContainer");
+    const keys = Object.keys(AppState.productsDb || {}).filter(x => x.toLowerCase().includes(q));
+    
+    document.getElementById("productsCount").innerText = `Всего продуктов: ${keys.length}`;
+    
+    if (!keys.length) {
+      c.innerHTML = `<div class="empty-state">Продукты не найдены</div>`;
+    } else {
+      c.innerHTML = keys.sort().map(n => {
+        const p = AppState.productsDb[n];
+        const copyTxt = `${n.replace(/'/g, "\\'")} - ${p.cal} ккал (Б:${p.p} Ж:${p.f} У:${p.c})`;
+        return `
+          <div class="product-row">
+            <div>
+              <div style="font-size:14px;font-weight:700;color:var(--text-main);">${n}</div>
+              <div style="font-size:12px;color:var(--text-muted);">
+                <b style="color:var(--accent-orange);">${p.cal} ккал</b> • Б:${p.p} Ж:${p.f} У:${p.c}
+              </div>
+            </div>
+            <button class="copy-chip" onclick="navigator.clipboard.writeText('${copyTxt}'); alert('Скопировано!')">Копия</button>
+          </div>`;
+      }).join("");
+    }
+  }
+
+  // === 7. СТАТИСТИКА ===
+  function renderStats() {
+    const dates = Object.keys(AppState.days || {}).sort().reverse();
+    
+    document.getElementById("historyContainer").innerHTML = dates.map(dt => {
+      let cal = 0; 
+      AppState.days[dt].meals.forEach(m => m.items.forEach(i => cal += Number(i.cal) || 0));
+      return `
+        <div class="history-card" onclick="currentDate='${dt}'; switchTab('diary'); renderDay();">
+          <div class="history-header">
+            <span>📅 ${dt}</span>
+            <span style="color:var(--accent-orange);">${Math.round(cal)} ккал</span>
+          </div>
+        </div>`;
+    }).join("");
+    
+    // Bar Chart
+    const ctxWeek = document.getElementById("weekBarChart").getContext("2d");
+    const chartDates = dates.slice(0, 7).reverse();
+    const chartCals = chartDates.map(dt => { 
+      let sum = 0; 
+      AppState.days[dt].meals.forEach(m => m.items.forEach(i => sum += Number(i.cal) || 0)); 
+      return sum; 
+    });
+    
+    if (weekChart) weekChart.destroy();
+    weekChart = new Chart(ctxWeek, { 
+      type: "bar", 
+      data: { 
+        labels: chartDates.map(d => d.slice(5)), 
+        datasets: [{ data: chartCals, backgroundColor: "#10B981", borderRadius: 8 }] 
+      }, 
+      options: { plugins: { legend: { display: false } }, scales: { x: { grid: { display: false } } } } 
+    });
+  }
+
+  // === 8. РАСЧЕТ НОРМЫ (ПРОФИЛЬ) ===
+  function setNormMode(m) { 
+    normMode = m; 
+    AppState.userProfile.mode = m; 
+    document.getElementById("norm-mode-auto").classList.toggle("active", m === "auto"); 
+    document.getElementById("norm-mode-manual").classList.toggle("active", m === "manual"); 
+    document.getElementById("norm-auto-block").style.display = m === "auto" ? "block" : "none";
+    document.getElementById("norm-manual-block").style.display = m === "manual" ? "block" : "none";
+    saveState();
+  }
+  
+  function setCalcGender(g) { 
+    calcGender = g; 
+    document.getElementById("calc-gender-m").classList.toggle("active", g === "m"); 
+    document.getElementById("calc-gender-f").classList.toggle("active", g === "f"); 
+  }
+  
+  function calculateAndSaveNorm() {
+    let tCal, tPro, tdee;
+    
+    if (normMode === 'auto') {
+        const w = Number(document.getElementById("calc-weight").value);
+        const h = Number(document.getElementById("calc-height").value);
+        const a = Number(document.getElementById("calc-age").value);
+        const act = Number(document.getElementById("calc-activity").value);
+        const goal = Number(document.getElementById("calc-goal").value);
+        
+        let bmr = (10 * w) + (6.25 * h) - (5 * a); 
+        bmr = calcGender === "m" ? bmr + 5 : bmr - 161;
+        
+        tdee = Math.round(bmr * act); // Теоретическая норма (сколько тратим)
+        tCal = Math.round(tdee * (1 + (goal / 100))); // Практическая цель
+        tPro = Math.round(w * 1.8);
+        
+        AppState.userProfile = { 
+          mode: 'auto', gender: calcGender, age: a, weight: w, height: h, 
+          activity: act, goal: goal, tdee: tdee, defaultTargetCal: tCal, defaultTargetPro: tPro 
+        };
+    } else {
+        tCal = Number(document.getElementById("manual-cal-global").value) || 1900;
+        tPro = Number(document.getElementById("manual-pro-global").value) || 130;
+        tdee = tCal; // Если вручную, предполагаем что норма равна цели
+        AppState.userProfile = { mode: 'manual', tdee: tdee, defaultTargetCal: tCal, defaultTargetPro: tPro };
+    }
+    
+    if (AppState.days[currentDate]) { 
+      AppState.days[currentDate].target_calories = tCal; 
+    }
+    
+    saveState(); 
+    updateProfileUI(); 
+    renderDay(); 
+    alert(`🎯 Норма сохранена!\nВы тратите: ${tdee} ккал.\nВаша цель есть: ${tCal} ккал.`);
+  }
+
+  function updateProfileUI() {
+    const p = AppState.userProfile || DEFAULT_STATE.userProfile;
+    
+    // Обновляем плашку с инфой в профиле
+    document.getElementById("prof-tdee-val").innerText = `${p.tdee || 2200} ккал`;
+    document.getElementById("prof-target-cal").innerText = `${p.defaultTargetCal || 1900} ккал`;
+    document.getElementById("prof-target-pro").innerText = `${p.defaultTargetPro || 130} г`;
+    
+    setNormMode(p.mode || 'auto');
+    if (p.mode === 'auto') {
+        document.getElementById("calc-age").value = p.age || 25;
+        document.getElementById("calc-weight").value = p.weight || 75;
+        document.getElementById("calc-height").value = p.height || 178;
+        document.getElementById("calc-activity").value = p.activity || 1.375;
+        document.getElementById("calc-goal").value = p.goal || 0;
+        setCalcGender(p.gender || "m");
+    } else {
+        document.getElementById("manual-cal-global").value = p.defaultTargetCal || 1900;
+        document.getElementById("manual-pro-global").value = p.defaultTargetPro || 130;
+    }
+    if (AppState.settings?.backupTime) {
+      document.getElementById("backup-time-input").value = AppState.settings.backupTime;
+    }
+  }
+
+  // === 9. ЭКСПОРТ И ИМПОРТ ===
+  // ТЕКСТОВЫЙ
   function exportText() {
     let txt = "=== ДНЕВНИК КБЖУ ===\n\n";
-    Object.keys(S.days).sort().reverse().forEach(dt => {
-      let c=0, p=0, f=0, u=0; S.days[dt].meals.forEach(m=>m.items.forEach(i=>{c+=i.cal||0; p+=i.p||0; f+=i.f||0; u+=i.c||0;}));
+    Object.keys(AppState.days).sort().reverse().forEach(dt => {
+      let c = 0, p = 0, f = 0, u = 0; 
+      AppState.days[dt].meals.forEach(m => m.items.forEach(i => {
+        c += i.cal || 0; p += i.p || 0; f += i.f || 0; u += i.c || 0;
+      }));
       txt += `📅 ${dt} | Съедено: ${Math.round(c)} ккал (Б:${Math.round(p)} Ж:${Math.round(f)} У:${Math.round(u)})\n`;
-      S.days[dt].meals.forEach(m => { txt += `  🍽 ${m.meal}:\n`; m.items.forEach(i => txt += `    - ${i.name}: ${i.cal} ккал\n`); });
+      AppState.days[dt].meals.forEach(m => { 
+        txt += `  🍽 ${m.meal}:\n`; 
+        m.items.forEach(i => txt += `    - ${i.name}: ${i.cal} ккал\n`); 
+      });
       txt += "\n";
     });
     txt += "=== БАЗА БЛЮД ===\n";
-    Object.keys(S.db).sort().forEach(k => { txt += `📦 ${k} — ${S.db[k].cal} ккал (Б:${S.db[k].p} Ж:${S.db[k].f} У:${S.db[k].c})\n`; });
-    document.getElementById("textExpArea").value = txt; openModal('modTextExp');
+    Object.keys(AppState.productsDb).sort().forEach(k => { 
+      txt += `📦 ${k} — ${AppState.productsDb[k].cal} ккал (Б:${AppState.productsDb[k].p} Ж:${AppState.productsDb[k].f} У:${AppState.productsDb[k].c})\n`; 
+    });
+    
+    document.getElementById("textExpArea").value = txt; 
+    document.getElementById("textExportModal").classList.add("open");
+  }
+  function closeTextExportModal() { document.getElementById("textExportModal").classList.remove("open"); }
+
+  // JSON
+  function exportFullJsonBackup() {
+    const b = new Blob([JSON.stringify(AppState, null, 2)], { type: "application/json" });
+    const a = document.createElement("a"); 
+    a.href = URL.createObjectURL(b); 
+    a.download = `kbju_backup_${new Date().toISOString().slice(0,10)}.json`; 
+    a.click();
+  }
+  function triggerJsonImport() { document.getElementById("jsonFileInput").click(); }
+  function handleJsonFileImport(e) {
+    const reader = new FileReader();
+    reader.onload = ev => { 
+      try { 
+        const d = JSON.parse(ev.target.result); 
+        if (d.days) { 
+          AppState = d; 
+          saveState(); 
+          alert("✅ Данные успешно восстановлены!"); 
+          location.reload(); 
+        } else throw new Error(); 
+      } catch(err) { 
+        alert("Ошибка JSON файла. Убедитесь, что это бэкап трекера."); 
+      } 
+    };
+    reader.readAsText(e.target.files[0]);
+  }
+  
+  // EXCEL
+  function exportFullExcel() {
+    const wb = XLSX.utils.book_new();
+    const lR = [["Дата","Прием","Блюдо","Ккал","Б","Ж","У"]];
+    Object.keys(AppState.days || {}).forEach(dt => {
+      AppState.days[dt].meals.forEach(m => m.items.forEach(i => lR.push([dt,m.meal,i.name,i.cal,i.p,i.f,i.c])));
+    });
+    XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(lR), "Дневник");
+    
+    const pR = [["Продукт","Ккал","Б","Ж","У"]];
+    Object.keys(AppState.productsDb || {}).forEach(k => {
+      let p = AppState.productsDb[k]; 
+      pR.push([k,p.cal,p.p,p.f,p.c]);
+    });
+    XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(pR), "База");
+    
+    XLSX.writeFile(wb, `kbju_excel_${new Date().toISOString().slice(0,10)}.xlsx`);
+  }
+  function exportProductsExcel() { exportFullExcel(); }
+  function triggerExcelImport() { document.getElementById("excelFileInput").click(); }
+  function handleExcelFileImport(event) {
+    const file = event.target.files[0]; 
+    if(!file) return;
+    const reader = new FileReader();
+    reader.onload = e => {
+      try {
+        const wb = XLSX.read(new Uint8Array(e.target.result), {type:"array"});
+        if (wb.Sheets["Дневник"]) {
+          XLSX.utils.sheet_to_json(wb.Sheets["Дневник"]).forEach(r => {
+            const dt = r["Дата"], mealType = r["Прием"], name = r["Блюдо"];
+            if (dt && name) {
+              if(!AppState.days[dt]) AppState.days[dt] = { date: dt, target_calories: AppState.userProfile?.defaultTargetCal || 1900, meals: [] };
+              let m = AppState.days[dt].meals.find(x => x.meal === mealType);
+              if(!m) { m = { meal: mealType, items: [] }; AppState.days[dt].meals.push(m); }
+              const exIdx = m.items.findIndex(i => i.name === name);
+              const itm = { name, cal: Number(r["Ккал"])||0, p: Number(r["Б"])||0, f: Number(r["Ж"])||0, c: Number(r["У"])||0 };
+              if (exIdx >= 0) m.items[exIdx] = itm; else m.items.push(itm);
+            }
+          });
+        }
+        if (wb.Sheets["База"]) {
+          if (!AppState.productsDb) AppState.productsDb = {};
+          XLSX.utils.sheet_to_json(wb.Sheets["База"]).forEach(r => {
+            if (r["Продукт"]) {
+              AppState.productsDb[r["Продукт"]] = { cal: Number(r["Ккал"])||0, p: Number(r["Б"])||0, f: Number(r["Ж"])||0, c: Number(r["У"])||0, lastUsed: currentDate };
+            }
+          });
+        }
+        saveState(); renderDay(); renderProductDatabase(); 
+        alert("✅ Данные из Excel загружены!");
+      } catch(err) { 
+        alert("Ошибка импорта Excel. Убедитесь, что формат вкладок правильный."); 
+      }
+    }; 
+    reader.readAsArrayBuffer(file); 
+    event.target.value = "";
   }
 
-  window.onload = () => { applyTheme(); rDay(); rCal(); rProf(); lucide.createIcons(); updBtn(); };
+  // === 10. ВСПОМОГАТЕЛЬНЫЕ ФУНКЦИИ ===
+  function changeDate(d) { 
+    let date = new Date(currentDate); 
+    date.setDate(date.getDate() + d); 
+    currentDate = date.toISOString().split("T")[0]; 
+    renderDay(); 
+  }
+  
+  function switchTab(t) { 
+    document.querySelectorAll(".tab-content, .nav-tab").forEach(el => el.classList.remove("active")); 
+    document.getElementById(`tab-${t}`).classList.add("active"); 
+    document.querySelector(`.nav-tab[onclick="switchTab('${t}')"]`).classList.add("active"); 
+    if(t === 'calendar') renderCalendar(); 
+    if(t === 'products') renderProductDatabase(); 
+    if(t === 'stats') renderStats(); 
+    if(t === 'profile') updateProfileUI(); 
+  }
+  
+  function openImportModal() { document.getElementById("jsonInput").value=""; document.getElementById("importModal").classList.add("open"); }
+  function closeImportModal() { document.getElementById("importModal").classList.remove("open"); }
+  function setImportMode(m) { 
+    importMode = m; 
+    document.getElementById("mode-overwrite").classList.toggle("active", m === "overwrite"); 
+    document.getElementById("mode-append").classList.toggle("active", m === "append"); 
+  }
+  
+  function openTargetModal() { 
+    document.getElementById("targetCalInput").value = AppState.days[currentDate]?.target_calories || AppState.userProfile?.defaultTargetCal || 1900; 
+    document.getElementById("targetModal").classList.add("open"); 
+  }
+  function closeTargetModal() { document.getElementById("targetModal").classList.remove("open"); }
+  function saveTargetModal() { 
+    if(!AppState.days[currentDate]) AppState.days[currentDate] = { date: currentDate, meals: [] }; 
+    AppState.days[currentDate].target_calories = Number(document.getElementById("targetCalInput").value); 
+    saveState(); 
+    closeTargetModal(); 
+    renderDay(); 
+  }
+  
+  async function quickPasteFromClipboard() { 
+    try { 
+      document.getElementById("jsonInput").value = await navigator.clipboard.readText(); 
+      applyJsonImport(); 
+    } catch(e) { 
+      openImportModal(); 
+    } 
+  }
+
+  // ЗАПУСК
+  window.addEventListener("DOMContentLoaded", () => { 
+    applyTheme(); 
+    lucide.createIcons(); 
+    renderDay(); 
+    updateProfileUI(); 
+  });
 </script>
 </body>
 </html>
