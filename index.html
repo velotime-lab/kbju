@@ -4,20 +4,23 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
   <title>КБЖУ Трекер</title>
-
+  
+  <!-- Настройки для работы как приложение на главном экране iOS/Android -->
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="default">
   <meta name="apple-mobile-web-app-title" content="КБЖУ">
   <meta name="theme-color" content="#F8FAFC">
-
+  
   <link rel="apple-touch-icon" href="https://cdn-icons-png.flaticon.com/512/3176/3176363.png">
   <link rel="manifest" href="manifest.json">
-
+  
+  <!-- Библиотеки: Chart.js (графики), SheetJS (Excel), Lucide (иконки) -->
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
   <script src="https://unpkg.com/lucide@latest"></script>
-
+  
   <style>
+    /* ================= СВЕТЛАЯ ТЕМА (ПО УМОЛЧАНИЮ) ================= */
     :root {
       --bg-page: #F8FAFC;
       --bg-card: #FFFFFF;
@@ -35,13 +38,14 @@
       --fat-col: #F59E0B;
       --carb-col: #10B981;
       
+      --shadow-sm: 0 1px 3px rgba(0,0,0,0.05);
+      --shadow-md: 0 4px 12px rgba(0,0,0,0.06);
       --radius-lg: 20px;
       --radius-md: 14px;
       --radius-sm: 10px;
-      --shadow-sm: 0 2px 8px rgba(0,0,0,0.04);
-      --shadow-md: 0 4px 12px rgba(0,0,0,0.1);
     }
 
+    /* ================= ТЕМНАЯ ТЕМА ================= */
     [data-theme="dark"] {
       --bg-page: #0F172A;
       --bg-card: #1E293B;
@@ -49,327 +53,1148 @@
       --border: #475569;
       --text-main: #F8FAFC;
       --text-muted: #94A3B8;
-      --shadow-sm: 0 2px 8px rgba(0,0,0,0.3);
+      
+      --shadow-sm: 0 1px 3px rgba(0,0,0,0.3);
+      --shadow-md: 0 4px 12px rgba(0,0,0,0.4);
     }
     
-    * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", sans-serif; }
+    /* ================= БАЗОВЫЕ НАСТРОЙКИ ================= */
+    * { 
+      box-sizing: border-box; 
+      margin: 0; 
+      padding: 0; 
+      -webkit-tap-highlight-color: transparent; 
+      font-family: -apple-system, BlinkMacSystemFont, "SF Pro Rounded", "SF Pro Text", "Segoe UI", Roboto, sans-serif; 
+    }
     
-    body { background-color: var(--bg-page); color: var(--text-main); padding: env(safe-area-inset-top, 20px) 16px calc(env(safe-area-inset-bottom, 20px) + 76px) 16px; min-height: 100vh; transition: background-color 0.3s, color 0.3s; }
+    body { 
+      background-color: var(--bg-page); 
+      color: var(--text-main); 
+      padding-top: env(safe-area-inset-top, 20px); 
+      padding-bottom: calc(env(safe-area-inset-bottom, 20px) + 76px); 
+      min-height: 100vh; 
+      overflow-x: hidden; 
+      transition: background-color 0.3s, color 0.3s; 
+    }
     
-    .container { max-width: 480px; margin: 0 auto; }
+    .container { 
+      max-width: 480px; 
+      margin: 0 auto; 
+      padding: 16px; 
+    }
     
-    /* Базовые элементы */
-    .header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px; }
-    .date-pill { background: var(--bg-card); border: 1px solid var(--border); border-radius: 30px; padding: 4px 8px; display: flex; align-items: center; gap: 6px; box-shadow: var(--shadow-sm); font-weight: 700; font-size: 15px;}
-    .icon-btn { background: var(--bg-subtle); border: none; color: var(--text-main); border-radius: 50%; width: 32px; height: 32px; display: flex; align-items: center; justify-content: center; cursor: pointer; }
-    .icon-btn.danger { color: var(--accent-red); background: rgba(239, 68, 68, 0.1); }
+    /* ================= ШАПКА И КНОПКИ ================= */
+    .header { 
+      display: flex; 
+      justify-content: space-between; 
+      align-items: center; 
+      margin-bottom: 14px; 
+    }
     
-    .btn { background: var(--accent-green); color: white; border: none; padding: 12px 16px; border-radius: var(--radius-sm); font-size: 14px; font-weight: 700; cursor: pointer; display: flex; justify-content: center; align-items: center; gap: 8px; width: 100%; }
-    .btn.outline { background: var(--bg-subtle); color: var(--text-main); border: 1px solid var(--border); }
+    .date-pill { 
+      background: var(--bg-card); 
+      border: 1px solid var(--border); 
+      border-radius: 30px; 
+      padding: 4px 8px; 
+      display: flex; 
+      align-items: center; 
+      gap: 6px; 
+      box-shadow: var(--shadow-sm); 
+    }
     
-    .card { background: var(--bg-card); border: 1px solid var(--border); border-radius: var(--radius-lg); padding: 18px; margin-bottom: 14px; box-shadow: var(--shadow-sm); }
+    .date-label { 
+      font-size: 15px; 
+      font-weight: 700; 
+      color: var(--text-main); 
+      padding: 0 4px; 
+      min-width: 70px;
+      text-align: center;
+    }
     
-    .input { width: 100%; background: var(--bg-subtle); border: 1px solid var(--border); color: var(--text-main); padding: 10px 12px; border-radius: var(--radius-sm); font-size: 14px; outline: none; margin-bottom: 10px; }
-    .input-group label { display: block; font-size: 11px; font-weight: 700; color: var(--text-muted); text-transform: uppercase; margin-bottom: 4px; }
+    .icon-btn-round { 
+      background: var(--bg-subtle); 
+      border: none; 
+      color: var(--text-main); 
+      border-radius: 50%; 
+      width: 32px; 
+      height: 32px; 
+      display: flex; 
+      align-items: center; 
+      justify-content: center; 
+      cursor: pointer; 
+      transition: all 0.15s ease; 
+    }
     
-    /* Сетка КБЖУ */
-    .cal-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; text-align: center; gap: 8px; margin-bottom: 14px; }
-    .stat-val { font-size: 22px; font-weight: 800; letter-spacing: -0.5px; }
-    .stat-lbl { font-size: 11px; font-weight: 600; color: var(--text-muted); text-transform: uppercase; margin-top: 2px; }
-    .prog-bg { background: var(--bg-subtle); border-radius: 20px; height: 12px; margin-bottom: 12px; overflow: hidden; }
-    .prog-fill { background: linear-gradient(90deg, var(--accent-green), var(--accent-blue)); height: 100%; transition: 0.4s; }
+    .icon-btn-round:active { 
+      transform: scale(0.95); 
+      opacity: 0.8; 
+    }
     
-    /* Круг БЖУ */
-    .fs-row { display: flex; justify-content: space-between; align-items: center; background: var(--bg-subtle); padding: 12px; border-radius: var(--radius-md); gap: 16px; }
-    .chart-box { width: 80px; height: 80px; position: relative; flex-shrink: 0; }
-    .chart-txt { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); font-size: 12px; font-weight: 800; text-align: center; line-height: 1.1; }
-    .mac-col { flex-grow: 1; display: flex; flex-direction: column; gap: 6px; }
-    .mac-itm { display: flex; justify-content: space-between; font-size: 12px; font-weight: 700; }
+    .btn-danger { 
+      color: var(--accent-red); 
+      background: rgba(239, 68, 68, 0.1); 
+    }
     
-    /* Дневник и Блюда */
-    .meal-group { background: var(--bg-card); border: 1px solid var(--border); border-radius: var(--radius-md); margin-bottom: 12px; overflow: hidden; }
-    .meal-head { padding: 12px 16px; background: var(--bg-subtle); border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; cursor: pointer; font-weight: 700; font-size: 14px; }
-    .meal-head .m-cal { color: var(--accent-orange); background: rgba(245,158,11,0.15); padding: 2px 8px; border-radius: 12px; font-size: 12px; }
-    .meal-head.colps .chev { transform: rotate(-90deg); }
-    .meal-body.colps { display: none; }
+    /* Основные кнопки */
+    .btn-primary { 
+      width: 100%; 
+      background: var(--accent-green); 
+      color: white; 
+      border: none; 
+      padding: 12px; 
+      border-radius: var(--radius-sm); 
+      font-weight: 700; 
+      cursor: pointer; 
+      display: flex; 
+      align-items: center; 
+      justify-content: center; 
+      gap: 8px;
+    }
     
-    .food-item { padding: 12px 16px; border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; }
-    .food-item:last-child { border-bottom: none; }
-    .food-nm { font-size: 13px; font-weight: 700; margin-bottom: 2px; }
-    .food-mc { font-size: 11px; color: var(--text-muted); }
-    .f-acts { display: flex; align-items: center; gap: 8px; }
-    .f-btn { background: none; border: none; color: var(--text-muted); cursor: pointer; display: flex; padding: 4px; }
+    .btn-primary:active {
+      transform: scale(0.98);
+      opacity: 0.95;
+    }
     
-    /* Календарь */
-    .c-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 6px; text-align: center; }
-    .c-cell { aspect-ratio: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; font-size: 13px; font-weight: 700; border-radius: 10px; background: var(--bg-subtle); cursor: pointer; border: 1px solid transparent; }
-    .c-cell.empty { background: transparent; }
-    .c-cell.has { background: var(--bg-card); border-color: var(--border); }
-    .c-cell.sel { background: var(--accent-blue); color: white; }
-    .c-dot { width: 4px; height: 4px; background: var(--accent-green); border-radius: 50%; margin-top: 2px; }
-    .c-cell.sel .c-dot { background: white; }
+    .btn-secondary { 
+      width: 100%; 
+      background: var(--bg-subtle); 
+      color: var(--text-main); 
+      border: none; 
+      padding: 12px; 
+      border-radius: var(--radius-sm); 
+      font-weight: 700; 
+      cursor: pointer; 
+    }
     
-    /* База */
-    .db-row { background: var(--bg-card); border: 1px solid var(--border); padding: 10px 14px; border-radius: var(--radius-md); margin-bottom: 8px; display: flex; justify-content: space-between; align-items: center; }
-    .db-btn { background: var(--bg-subtle); color: var(--accent-blue); border: 1px solid var(--border); padding: 6px; border-radius: 8px; font-size: 11px; font-weight: 700; cursor: pointer; }
+    .btn-row { 
+      display: flex; 
+      gap: 10px; 
+      margin-top: 14px;
+    }
+    /* ================= КАРТОЧКИ И БЛОКИ ================= */
+    .card { 
+      background: var(--bg-card); 
+      border: 1px solid var(--border); 
+      border-radius: var(--radius-lg); 
+      padding: 18px; 
+      margin-bottom: 14px; 
+      box-shadow: var(--shadow-sm); 
+    }
     
-    /* Навигация и Модалки */
-    .nav-bar { position: fixed; bottom: 0; left: 0; right: 0; background: var(--bg-card); border-top: 1px solid var(--border); display: flex; padding-bottom: env(safe-area-inset-bottom); z-index: 100; }
-    .nav-tab { flex: 1; display: flex; flex-direction: column; align-items: center; padding: 10px 0; font-size: 10px; font-weight: 600; color: var(--text-muted); cursor: pointer; gap: 3px; }
-    .nav-tab.active { color: var(--accent-green); }
+    .cal-summary-grid { 
+      display: grid; 
+      grid-template-columns: 1fr 1fr 1fr; 
+      text-align: center; 
+      gap: 8px; 
+      margin-bottom: 14px; 
+    }
     
-    .tab-content { display: none; }
-    .tab-content.active { display: block; }
+    .stat-box .val { 
+      font-size: 22px; 
+      font-weight: 800; 
+      letter-spacing: -0.5px; 
+    }
     
-    .overlay { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.6); display: none; align-items: center; justify-content: center; z-index: 1000; padding: 16px; backdrop-filter: blur(2px); }
-    .overlay.open { display: flex; }
-    .modal { background: var(--bg-card); width: 100%; max-width: 420px; padding: 20px; border-radius: var(--radius-lg); box-shadow: var(--shadow-md); max-height: 90vh; overflow-y: auto; }
+    .stat-box .label { 
+      font-size: 11px; 
+      font-weight: 600; 
+      color: var(--text-muted); 
+      margin-top: 2px; 
+      text-transform: uppercase; 
+    }
+    
+    .progress-bar-bg { 
+      background: var(--bg-subtle); 
+      border-radius: 20px; 
+      height: 12px; 
+      overflow: hidden; 
+      margin-bottom: 8px; 
+      padding: 2px; 
+    }
+    
+    .progress-bar-fill { 
+      background: linear-gradient(90deg, var(--accent-green), var(--accent-blue)); 
+      height: 100%; 
+      width: 0%; 
+      border-radius: 20px; 
+      transition: width 0.4s ease; 
+    }
+    
+    .motivational-text { 
+      text-align: center; 
+      font-size: 13px; 
+      font-weight: 600; 
+      margin-bottom: 16px; 
+      color: var(--text-muted); 
+      line-height: 1.4; 
+    }
+    
+    /* ================= БЖУ И FATSECRET ГРАФИК ================= */
+    .fatsecret-row { 
+      display: flex; 
+      align-items: center; 
+      justify-content: space-between; 
+      gap: 16px; 
+      background: var(--bg-subtle); 
+      padding: 12px 14px; 
+      border-radius: var(--radius-md); 
+    }
+    
+    .chart-container { 
+      width: 90px; 
+      height: 90px; 
+      position: relative; 
+      flex-shrink: 0; 
+    }
+    
+    .chart-center-text { 
+      position: absolute; 
+      top: 50%; 
+      left: 50%; 
+      transform: translate(-50%, -50%); 
+      font-size: 13px; 
+      font-weight: 800; 
+      text-align: center; 
+      line-height: 1.1; 
+      color: var(--text-main); 
+    }
+    
+    .macros-breakdown { 
+      flex-grow: 1; 
+      display: flex; 
+      flex-direction: column; 
+      gap: 6px; 
+    }
+    
+    .macro-item { 
+      display: flex; 
+      align-items: center; 
+      justify-content: space-between; 
+      font-size: 13px; 
+    }
+    
+    .macro-label { 
+      display: flex; 
+      align-items: center; 
+      gap: 6px; 
+      font-weight: 600; 
+    }
+    
+    .macro-dot { 
+      width: 8px; 
+      height: 8px; 
+      border-radius: 50%; 
+    }
+    
+    .macro-val { 
+      font-weight: 700; 
+    }
+    
+    .macro-pct { 
+      color: var(--text-muted); 
+      font-size: 11px; 
+      margin-left: 2px; 
+    }
+    
+    /* ================= ДНЕВНИК И ПРИЕМЫ ПИЩИ ================= */
+    .meal-group { 
+      background: var(--bg-card); 
+      border: 1px solid var(--border); 
+      border-radius: var(--radius-md); 
+      margin-bottom: 12px; 
+      overflow: hidden; 
+      box-shadow: var(--shadow-sm); 
+    }
+    
+    .meal-group-header { 
+      padding: 12px 16px; 
+      background: var(--bg-subtle); 
+      border-bottom: 1px solid var(--border); 
+      display: flex; 
+      justify-content: space-between; 
+      align-items: center; 
+      cursor: pointer; 
+      user-select: none; 
+    }
+    
+    .meal-group-title { 
+      font-size: 15px; 
+      font-weight: 700; 
+      display: flex; 
+      align-items: center; 
+      gap: 6px; 
+    }
+    
+    .meal-group-cals { 
+      font-size: 13px; 
+      font-weight: 700; 
+      color: var(--accent-orange); 
+      background: rgba(245, 158, 11, 0.15); 
+      padding: 2px 8px; 
+      border-radius: 12px; 
+      display: flex; 
+      align-items: center; 
+      gap: 6px; 
+    }
+    
+    .chevron-icon { 
+      transition: transform 0.3s; 
+    }
+    
+    .collapsed .chevron-icon { 
+      transform: rotate(-90deg); 
+    }
+    
+    .collapsed .meal-items-container { 
+      display: none; 
+    }
+    
+    .food-item { 
+      padding: 12px 16px; 
+      border-bottom: 1px solid var(--border); 
+      display: flex; 
+      justify-content: space-between; 
+      align-items: center; 
+    }
+    
+    .food-item:last-child { 
+      border-bottom: none; 
+    }
+    
+    .food-name { 
+      font-size: 14px; 
+      font-weight: 600; 
+      margin-bottom: 2px; 
+      color: var(--text-main); 
+    }
+    
+    .food-macros { 
+      font-size: 12px; 
+      color: var(--text-muted); 
+    }
+    
+    .food-cal-block { 
+      display: flex; 
+      align-items: center; 
+      gap: 10px; 
+    }
+    
+    .food-cal { 
+      font-size: 14px; 
+      font-weight: 700; 
+      text-align: right; 
+    }
+    
+    .action-icon-btn { 
+      background: none; 
+      border: none; 
+      color: var(--text-muted); 
+      cursor: pointer; 
+      display: flex; 
+      align-items: center; 
+      justify-content: center; 
+      padding: 4px;
+    }
+    
+    .del-item-btn { 
+      color: var(--accent-red); 
+    }
+    /* ================= КАЛЕНДАРЬ И АНАЛИЗ ================= */
+    .calendar-card { 
+      background: var(--bg-card); 
+      border: 1px solid var(--border); 
+      border-radius: var(--radius-lg); 
+      padding: 16px; 
+      margin-bottom: 14px; 
+      box-shadow: var(--shadow-sm); 
+    }
+    
+    .calendar-nav { 
+      display: flex; 
+      justify-content: space-between; 
+      align-items: center; 
+      margin-bottom: 12px; 
+    }
+    
+    .calendar-month-title { 
+      font-size: 16px; 
+      font-weight: 800; 
+    }
+    
+    .calendar-weekdays { 
+      display: grid; 
+      grid-template-columns: repeat(7, 1fr); 
+      text-align: center; 
+      font-size: 11px; 
+      font-weight: 700; 
+      color: var(--text-muted); 
+      margin-bottom: 8px; 
+    }
+    
+    .calendar-grid { 
+      display: grid; 
+      grid-template-columns: repeat(7, 1fr); 
+      gap: 6px; 
+    }
+    
+    .cal-cell { 
+      aspect-ratio: 1; 
+      display: flex; 
+      flex-direction: column; 
+      align-items: center; 
+      justify-content: center; 
+      border-radius: 12px; 
+      font-size: 13px; 
+      font-weight: 700; 
+      cursor: pointer; 
+      background: var(--bg-subtle); 
+      border: 1px solid transparent; 
+      transition: all 0.15s ease; 
+    }
+    
+    .cal-cell.empty { 
+      background: transparent; 
+      cursor: default; 
+    }
+    
+    .cal-cell.has-data { 
+      background: var(--bg-card); 
+      border-color: var(--border); 
+    }
+    
+    .cal-cell.has-data .cal-dot { 
+      width: 4px; 
+      height: 4px; 
+      background: var(--accent-green); 
+      border-radius: 50%; 
+      margin-top: 2px; 
+    }
+    
+    .cal-cell.selected { 
+      background: var(--accent-blue) !important; 
+      color: #FFFFFF !important; 
+      box-shadow: 0 4px 10px rgba(59, 130, 246, 0.35); 
+    }
+    
+    .cal-cell.selected .cal-dot { 
+      background: #FFFFFF !important; 
+    }
+    
+    .cal-cell.today { 
+      border: 2px solid var(--accent-orange); 
+    }
+    
+    .cal-quick-actions { 
+      display: flex; 
+      gap: 6px; 
+      margin-top: 12px; 
+      flex-wrap: wrap; 
+    }
+    
+    .cal-chip-btn { 
+      background: var(--bg-subtle); 
+      border: 1px solid var(--border); 
+      padding: 6px 10px; 
+      border-radius: 20px; 
+      font-size: 11px; 
+      font-weight: 700; 
+      cursor: pointer; 
+      color: var(--text-main); 
+    }
+    
+    .avg-summary-card { 
+      background: var(--bg-subtle); 
+      border: 1px solid var(--border); 
+      border-radius: var(--radius-lg); 
+      padding: 16px; 
+      margin-bottom: 14px; 
+      box-shadow: var(--shadow-sm); 
+    }
+    
+    .avg-title-row { 
+      display: flex; 
+      justify-content: space-between; 
+      align-items: center; 
+      margin-bottom: 12px; 
+    }
+    
+    .avg-badge { 
+      background: var(--accent-blue); 
+      color: white; 
+      font-size: 11px; 
+      font-weight: 700; 
+      padding: 3px 8px; 
+      border-radius: 12px; 
+    }
+    
+    .norm-info-box { 
+      background: var(--bg-card); 
+      padding: 12px; 
+      border-radius: 10px; 
+      margin-bottom: 12px; 
+      border: 1px solid var(--border); 
+      font-size: 12px; 
+      color: var(--text-muted); 
+    }
+    
+    /* ================= БАЗА ПРОДУКТОВ ================= */
+    .search-input { 
+      width: 100%; 
+      background: var(--bg-subtle); 
+      border: 1px solid var(--border); 
+      padding: 12px 16px; 
+      border-radius: var(--radius-md); 
+      font-size: 14px; 
+      margin-bottom: 12px; 
+      outline: none; 
+      color: var(--text-main); 
+    }
+    
+    .product-row { 
+      background: var(--bg-card); 
+      border: 1px solid var(--border); 
+      border-radius: var(--radius-md); 
+      padding: 12px 14px; 
+      margin-bottom: 8px; 
+      display: flex; 
+      justify-content: space-between; 
+      align-items: center; 
+      box-shadow: var(--shadow-sm); 
+    }
+    
+    .copy-chip { 
+      background: var(--bg-subtle); 
+      color: var(--accent-blue); 
+      border: 1px solid var(--border); 
+      padding: 6px 12px; 
+      border-radius: 8px; 
+      font-size: 12px; 
+      font-weight: 700; 
+      cursor: pointer; 
+    }
+    
+    /* ================= ФОРМЫ И НАСТРОЙКИ ================= */
+    .backup-box { 
+      background: var(--bg-card); 
+      border: 1px solid var(--border); 
+      border-radius: var(--radius-lg); 
+      padding: 16px; 
+      margin-bottom: 14px; 
+      box-shadow: var(--shadow-sm); 
+    }
+    
+    .backup-btn-group { 
+      display: grid; 
+      grid-template-columns: 1fr 1fr; 
+      gap: 8px; 
+      margin-top: 10px; 
+    }
+    
+    .btn-action-outline { 
+      background: var(--bg-subtle); 
+      border: 1px solid var(--border); 
+      padding: 10px; 
+      border-radius: var(--radius-sm); 
+      font-size: 12px; 
+      font-weight: 700; 
+      display: flex; 
+      align-items: center; 
+      justify-content: center; 
+      gap: 6px; 
+      cursor: pointer; 
+      color: var(--text-main); 
+    }
+    
+    .input-group { 
+      margin-bottom: 12px; 
+    }
+    
+    .input-group label { 
+      display: block; 
+      font-size: 12px; 
+      font-weight: 700; 
+      color: var(--text-muted); 
+      margin-bottom: 4px; 
+      text-transform: uppercase; 
+    }
+    
+    .form-input, .form-select { 
+      width: 100%; 
+      background: var(--bg-subtle); 
+      border: 1px solid var(--border); 
+      border-radius: var(--radius-sm); 
+      padding: 10px 12px; 
+      font-size: 14px; 
+      outline: none; 
+      color: var(--text-main); 
+    }
+    
+    .seg-control { 
+      display: flex; 
+      background: var(--bg-subtle); 
+      border-radius: var(--radius-sm); 
+      padding: 3px; 
+      margin-bottom: 12px; 
+    }
+    
+    .seg-btn { 
+      flex: 1; 
+      border: none; 
+      background: transparent; 
+      padding: 8px; 
+      border-radius: 8px; 
+      font-size: 12px; 
+      font-weight: 700; 
+      color: var(--text-muted); 
+      cursor: pointer; 
+    }
+    
+    .seg-btn.active { 
+      background: var(--bg-card); 
+      color: var(--text-main); 
+      box-shadow: var(--shadow-sm); 
+    }
+    
+    /* ================= НАВИГАЦИЯ И МОДАЛКИ ================= */
+    .nav-bar { 
+      position: fixed; 
+      bottom: 0; 
+      left: 0; 
+      right: 0; 
+      height: calc(60px + env(safe-area-inset-bottom, 15px)); 
+      background: var(--bg-card); 
+      border-top: 1px solid var(--border); 
+      display: flex; 
+      justify-content: space-around; 
+      align-items: center; 
+      padding-bottom: env(safe-area-inset-bottom, 15px); 
+      z-index: 100; 
+    }
+    
+    .nav-tab { 
+      display: flex; 
+      flex-direction: column; 
+      align-items: center; 
+      color: var(--text-muted); 
+      font-size: 10px; 
+      font-weight: 600; 
+      cursor: pointer; 
+      gap: 3px; 
+      flex: 1; 
+      padding: 6px 0; 
+    }
+    
+    .nav-tab.active { 
+      color: var(--accent-green); 
+    }
+    
+    .modal-overlay { 
+      position: fixed; 
+      top: 0; 
+      left: 0; 
+      right: 0; 
+      bottom: 0; 
+      background: rgba(0,0,0,0.6); 
+      backdrop-filter: blur(4px); 
+      display: none; 
+      align-items: center; 
+      justify-content: center; 
+      z-index: 1000; 
+      padding: 16px; 
+    }
+    
+    .modal-overlay.open { 
+      display: flex; 
+    }
+    
+    .modal-sheet { 
+      background: var(--bg-card); 
+      border-radius: var(--radius-lg); 
+      width: 100%; 
+      max-width: 440px; 
+      padding: 20px; 
+      box-shadow: var(--shadow-md); 
+      max-height: 90vh; 
+      overflow-y: auto; 
+    }
+    
+    .modal-textarea { 
+      width: 100%; 
+      height: 120px; 
+      background: var(--bg-subtle); 
+      border: 1px solid var(--border); 
+      border-radius: var(--radius-sm); 
+      padding: 10px; 
+      font-family: monospace; 
+      font-size: 12px; 
+      margin-bottom: 14px; 
+      outline: none; 
+      resize: none; 
+      color: var(--text-main); 
+    }
+    
+    .text-export-area { 
+      width: 100%; 
+      height: 300px; 
+      font-family: monospace; 
+      font-size: 11px; 
+      white-space: pre; 
+      overflow-x: auto; 
+      background: var(--bg-subtle); 
+      border: 1px solid var(--border); 
+      padding: 10px; 
+      border-radius: 8px; 
+      color: var(--text-main); 
+    }
+    
+    .empty-state { 
+      text-align: center; 
+      padding: 30px 16px; 
+      color: var(--text-muted); 
+      font-size: 13px; 
+      line-height: 1.5; 
+    }
+    
+    .tab-content { 
+      display: none; 
+    }
+    
+    .tab-content.active { 
+      display: block; 
+    }
   </style>
-
 </head>
 <body>
 
+<!-- Скрытые инпуты для загрузки файлов -->
 <input type="file" id="jsonFileInput" accept=".json" style="display:none;" onchange="handleJsonFileImport(event)">
 <input type="file" id="excelFileInput" accept=".xlsx, .xls" style="display:none;" onchange="handleExcelFileImport(event)">
 
 <div class="container">
-
-  <!-- Вкладка 1: ДНЕВНИК -->
+  
+  <!-- ================= ВКЛАДКА 1: ДНЕВНИК ================= -->
   <div id="tab-diary" class="tab-content active">
+    
     <div class="header">
       <div class="date-pill">
         <i data-lucide="chevron-left" style="width:18px; cursor:pointer;" onclick="changeDate(-1)"></i>
-        <span id="currentDateLabel" style="min-width:70px;text-align:center;">Сегодня</span>
+        <span id="currentDateLabel" class="date-label">Сегодня</span>
         <i data-lucide="chevron-right" style="width:18px; cursor:pointer;" onclick="changeDate(1)"></i>
       </div>
+      
       <div style="display:flex; gap:8px;">
-        <button class="icon-btn" onclick="openManualEntryModal()" title="Ручной ввод"><i data-lucide="plus"></i></button>
-        <button class="icon-btn" onclick="toggleTheme()" title="Сменить тему"><i data-lucide="moon" id="theme-icon"></i></button>
-        <button class="icon-btn danger" onclick="deleteCurrentDay()" title="Удалить весь день"><i data-lucide="trash-2"></i></button>
+        <!-- Кнопка ручного ввода -->
+        <button class="icon-btn-round" onclick="openManualEntryModal()" title="Ручной ввод">
+          <i data-lucide="plus" style="width:18px;height:18px;"></i>
+        </button>
+        <button class="icon-btn-round" onclick="toggleTheme()" title="Сменить тему">
+          <i data-lucide="moon" id="theme-icon" style="width:18px;height:18px;"></i>
+        </button>
+        <button class="icon-btn-round btn-danger" onclick="deleteCurrentDay()" title="Удалить весь день">
+          <i data-lucide="trash-2" style="width:18px;height:18px;"></i>
+        </button>
       </div>
     </div>
 
-<div class="action-row" style="grid-template-columns: 1fr;">
-  <button class="btn" onclick="openImportModal()">
-    <i data-lucide="sparkles"></i> Импорт текста / JSON
-  </button>
-</div>
+    <div class="action-row">
+      <button class="import-btn" onclick="openImportModal()">
+        <i data-lucide="sparkles" style="width:18px;height:18px;"></i> Импорт из чата (Текст / JSON)
+      </button>
+      <button class="settings-quick-btn" onclick="quickPasteFromClipboard()" title="Быстрая вставка">
+        <i data-lucide="clipboard-paste" style="width:18px;height:18px;color:var(--accent-green);"></i>
+      </button>
+    </div>
 
-<div class="card">
-  <div class="cal-grid">
-    <div><div class="stat-val" id="val-consumed" style="color:var(--accent-orange);">0</div><div class="stat-lbl">Съедено</div></div>
-    <div onclick="switchTab('profile')" style="cursor:pointer;"><div class="stat-val" id="val-target">1900</div><div class="stat-lbl">Цель ✎</div></div>
-    <div><div class="stat-val" id="val-remaining" style="color:var(--accent-green);">1900</div><div class="stat-lbl">Остаток</div></div>
+    <div class="card">
+      <div class="cal-summary-grid">
+        <div class="stat-box">
+          <div class="val" id="val-consumed" style="color:var(--accent-orange);">0</div>
+          <div class="label">Съедено</div>
+        </div>
+        <!-- При нажатии на цель - перекидывает в профиль для настройки -->
+        <div class="stat-box" onclick="switchTab('profile')" style="cursor:pointer;">
+          <div class="val" id="val-target">1900</div>
+          <div class="label">Цель ✎</div>
+        </div>
+        <div class="stat-box">
+          <div class="val" id="val-remaining" style="color:var(--accent-green);">1900</div>
+          <div class="label">Остаток</div>
+        </div>
+      </div>
+      
+      <div class="progress-bar-bg">
+        <div class="progress-bar-fill" id="cal-progress"></div>
+      </div>
+      <div class="motivational-text" id="motivational-text">☀️ Начинаем день с чистого листа! Что вкусненького съедим?</div>
+
+      <div class="fatsecret-row">
+        <div class="chart-container">
+          <canvas id="macroDoughnut"></canvas>
+          <div class="chart-center-text" id="macroTotalKcal">
+            0<br><span style="font-size:9px;color:var(--text-muted);font-weight:600;">ккал</span>
+          </div>
+        </div>
+        <div class="macros-breakdown">
+          <div class="macro-item">
+            <div class="macro-label">
+              <span class="macro-dot" style="background:var(--protein-col);"></span>Белки
+            </div>
+            <div>
+              <span class="macro-val" id="val-protein">0 г</span>
+              <span class="macro-pct" id="pct-protein">(0%)</span>
+            </div>
+          </div>
+          <div class="macro-item">
+            <div class="macro-label">
+              <span class="macro-dot" style="background:var(--fat-col);"></span>Жиры
+            </div>
+            <div>
+              <span class="macro-val" id="val-fat">0 г</span>
+              <span class="macro-pct" id="pct-fat">(0%)</span>
+            </div>
+          </div>
+          <div class="macro-item">
+            <div class="macro-label">
+              <span class="macro-dot" style="background:var(--carb-col);"></span>Углеводы
+            </div>
+            <div>
+              <span class="macro-val" id="val-carbs">0 г</span>
+              <span class="macro-pct" id="pct-carbs">(0%)</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    
+    <!-- Контейнер для приемов пищи -->
+    <div id="mealsContainer"></div>
   </div>
   
-  <div class="prog-bg"><div class="prog-fill" id="cal-progress"></div></div>
-  <div class="motivational-text" id="motivational-text">☀️ Начинаем день с чистого листа!</div>
-
-  <div class="fs-row">
-    <div class="chart-box">
-      <canvas id="macroDoughnut"></canvas>
-      <div class="chart-txt" id="macroTotalKcal">0<br><span style="font-size:9px;color:var(--text-muted);font-weight:600;">ккал</span></div>
-    </div>
-    <div class="mac-col">
-      <div class="mac-itm"><div style="display:flex;align-items:center;gap:6px;"><div class="c-dot" style="background:var(--protein-col);"></div>Белки</div><div><span id="val-protein">0 г</span> <span class="macro-pct" id="pct-protein">(0%)</span></div></div>
-      <div class="mac-itm"><div style="display:flex;align-items:center;gap:6px;"><div class="c-dot" style="background:var(--fat-col);"></div>Жиры</div><div><span id="val-fat">0 г</span> <span class="macro-pct" id="pct-fat">(0%)</span></div></div>
-      <div class="mac-itm"><div style="display:flex;align-items:center;gap:6px;"><div class="c-dot" style="background:var(--carb-col);"></div>Углеводы</div><div><span id="val-carbs">0 г</span> <span class="macro-pct" id="pct-carbs">(0%)</span></div></div>
-    </div>
-  </div>
-</div>
-
-<div id="mealsContainer">
-  <!-- Сюда вставляются блюда -->
-</div>
-  </div>
-
-  <!-- Вкладка 2: КАЛЕНДАРЬ И АНАЛИЗ -->
+  <!-- ================= ВКЛАДКА 2: КАЛЕНДАРЬ И АНАЛИЗ ================= -->
   <div id="tab-calendar" class="tab-content">
-    <div class="header"><h2>📅 Анализ</h2></div>
+    <div class="header">
+      <h2>📅 Календарь и Анализ</h2>
+    </div>
+    
+    <div class="calendar-card">
+      <div class="calendar-nav">
+        <button class="icon-btn-round" onclick="changeCalMonth(-1)">
+          <i data-lucide="chevron-left" style="width:16px;height:16px;"></i>
+        </button>
+        <div class="calendar-month-title" id="calMonthTitle">Август 2026</div>
+        <button class="icon-btn-round" onclick="changeCalMonth(1)">
+          <i data-lucide="chevron-right" style="width:16px;height:16px;"></i>
+        </button>
+      </div>
+      
+      <div class="calendar-weekdays">
+        <div>Пн</div><div>Вт</div><div>Ср</div><div>Чт</div><div>Пт</div><div>Сб</div><div>Вс</div>
+      </div>
+      
+      <div class="calendar-grid" id="calGrid"></div>
+      
+      <div class="cal-quick-actions">
+        <button class="cal-chip-btn" onclick="selectCalendarPreset('week')">⚡ 7 дней</button>
+        <button class="cal-chip-btn" onclick="selectCalendarPreset('all_month')">📆 Весь месяц</button>
+        <button class="cal-chip-btn" onclick="clearCalendarSelection()">✕ Сброс</button>
+      </div>
+    </div>
+    
+    <div class="avg-summary-card" id="avgResultCard">
+      <div class="avg-title-row">
+        <div>
+          <span style="font-size: 15px; font-weight: 800;">Анализ</span>
+          <div style="font-size: 12px; color: var(--text-muted);" id="avgSelectedCount">Выбрано дней: 0</div>
+        </div>
+        <span class="avg-badge" id="avgStatusBadge">Детали</span>
+      </div>
+      
+      <div class="norm-info-box" style="text-align: center;">
+        <div style="font-size: 11px; text-transform: uppercase; color: var(--text-muted); font-weight: 700; margin-bottom: 4px;">СУММАРНЫЙ ДЕФИЦИТ</div>
+        <div id="total-deficit" style="font-size: 22px; font-weight: 800; color: var(--accent-green);">0 ккал</div>
+        <div id="avg-deficit" style="font-size: 12px; color: var(--text-muted); margin-top: 2px;">В среднем: 0 ккал / день</div>
+        <div id="tdee-info-cal" style="font-size: 10px; color: var(--text-muted); margin-top: 6px;">Считается от вашей теоретической нормы TDEE</div>
+      </div>
 
-<div class="card">
-  <div class="header" style="margin-bottom:10px;">
-    <i data-lucide="chevron-left" style="cursor:pointer;" onclick="changeCalMonth(-1)"></i>
-    <span style="font-weight:800;" id="calMonthTitle">Август 2026</span>
-    <i data-lucide="chevron-right" style="cursor:pointer;" onclick="changeCalMonth(1)"></i>
+      <div class="cal-summary-grid" style="margin-bottom: 0;">
+        <div class="stat-box">
+          <div class="val" id="avg-cal" style="color:var(--text-main);">0</div>
+          <div class="label">ккал/день</div>
+        </div>
+        <div class="stat-box">
+          <div class="val" id="avg-pro" style="color:var(--accent-blue);">0 г</div>
+          <div class="label">Белки ср.</div>
+        </div>
+        <div class="stat-box">
+          <div class="val" id="avg-fat" style="color:var(--accent-orange);">0 г</div>
+          <div class="label">Жиры ср.</div>
+        </div>
+      </div>
+    </div>
   </div>
-  <div class="c-grid" style="font-size:11px;color:var(--text-muted);margin-bottom:8px;"><div>Пн</div><div>Вт</div><div>Ср</div><div>Чт</div><div>Пт</div><div>Сб</div><div>Вс</div></div>
-  <div class="c-grid" id="calGrid"></div>
-  
-  <div style="display:flex; gap:6px; margin-top:12px; overflow-x:auto; padding-bottom:4px;">
-    <button class="btn outline" style="padding:6px 10px; font-size:11px; width:auto;" onclick="selectCalendarPreset('week')">⚡ 7 дней</button>
-    <button class="btn outline" style="padding:6px 10px; font-size:11px; width:auto;" onclick="selectCalendarPreset('all_month')">📆 Весь месяц</button>
-    <button class="btn outline" style="padding:6px 10px; font-size:11px; width:auto;" onclick="clearCalendarSelection()">✕ Сброс</button>
-  </div>
-</div>
-
-<div class="card" style="background:var(--bg-subtle);">
-  <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
-    <span style="font-weight:800;">Анализ</span>
-    <span style="font-size:11px; background:var(--accent-blue); color:white; padding:2px 8px; border-radius:10px;" id="avgSelectedCount">0 дн.</span>
-  </div>
-  
-  <div style="background:var(--bg-card); padding:12px; border-radius:10px; margin-bottom:12px; text-align:center; border:1px solid var(--border);">
-    <div style="font-size:11px; color:var(--text-muted); font-weight:700; margin-bottom:4px;">СУММАРНЫЙ ДЕФИЦИТ</div>
-    <div id="total-deficit" style="font-size:22px; font-weight:800; color:var(--accent-green);">0 ккал</div>
-    <div id="avg-deficit" style="font-size:12px; color:var(--text-muted); margin-top:2px;">В среднем: 0 ккал / день</div>
-    <div id="tdee-info-cal" style="font-size:10px; color:var(--text-muted); margin-top:6px;">Считается от нормы: 0 ккал</div>
-  </div>
-
-  <div class="cal-grid" style="margin-bottom:0;">
-    <div><div class="stat-val" id="avg-cal" style="color:var(--text-main);">0</div><div class="stat-lbl">ккал/день</div></div>
-    <div><div class="stat-val" id="avg-pro" style="color:var(--accent-blue);">0 г</div><div class="stat-lbl">Белки ср.</div></div>
-    <div><div class="stat-val" id="avg-fat" style="color:var(--accent-orange);">0 г</div><div class="stat-lbl">Жиры ср.</div></div>
-  </div>
-</div>
-  </div>
-  <!-- Вкладка 3: ПРОДУКТЫ -->
+  <!-- ================= ВКЛАДКА 3: БАЗА ПРОДУКТОВ ================= -->
   <div id="tab-products" class="tab-content">
     <div class="header">
       <h2>📦 База продуктов</h2>
-      <button class="icon-btn" onclick="exportProductsExcel()">
-        <i data-lucide="file-spreadsheet" style="width:18px;height:18px;color:var(--accent-green);"></i>
+      <button class="icon-btn-round" onclick="exportProductsExcel()">
+        <i data-lucide="file-spreadsheet" style="width:16px;height:16px;color:var(--accent-green);"></i>
       </button>
     </div>
-    <input type="text" class="input" id="productSearch" placeholder="🔍 Поиск по базе..." oninput="renderProductDatabase()">
+    
+    <input type="text" class="search-input" id="productSearch" placeholder="🔍 Поиск по базе..." oninput="renderProductDatabase()">
     <div id="productsCount" style="font-size:12px; color:var(--text-muted); margin-bottom:10px;">Всего: 0</div>
-    <div id="productsContainer"></div>
+    
+    <div id="productsContainer">
+      <!-- Список продуктов генерируется здесь -->
+    </div>
   </div>
 
-  <!-- Вкладка 4: СТАТИСТИКА -->
+  <!-- ================= ВКЛАДКА 4: СТАТИСТИКА (ГРАФИКИ) ================= -->
   <div id="tab-stats" class="tab-content">
-    <div class="header"><h2>📊 Графики</h2></div>
+    <div class="header">
+      <h2>📊 Графики</h2>
+    </div>
+    
     <div class="card">
-      <div style="font-size:14px; font-weight:700; margin-bottom:12px;">Калории по дням</div>
+      <div style="font-size:14px; font-weight:700; margin-bottom:12px;">Калории по дням (С линией цели)</div>
       <canvas id="weekBarChart" style="max-height: 200px; width:100%;"></canvas>
     </div>
+    
     <h3 style="font-size: 16px; font-weight:800; margin: 16px 0 10px 4px;">История по дням</h3>
-    <div id="historyContainer"></div>
+    <div id="historyContainer">
+      <!-- История дней -->
+    </div>
   </div>
 
-  <!-- Вкладка 5: ПРОФИЛЬ И НАСТРОЙКИ -->
+  <!-- ================= ВКЛАДКА 5: ПРОФИЛЬ И НАСТРОЙКИ ================= -->
   <div id="tab-profile" class="tab-content">
-    <div class="header"><h2>👤 Настройки</h2></div>
+    <div class="header">
+      <h2>👤 Настройки и Профиль</h2>
+    </div>
+    
+    <!-- Настройка нормы (Только ручная) -->
+    <div class="card">
+      <h3 style="font-size: 15px; font-weight: 800; margin-bottom: 6px;">Настройка нормы</h3>
+      <p style="font-size: 11px; color: var(--text-muted); margin-bottom: 12px;">
+        Укажите вручную, сколько вы тратите (TDEE) для подсчета дефицита, и какая у вас дневная цель для дневника.
+      </p>
+      
+      <div class="input-group">
+        <label>Теоретическая норма TDEE (ккал в день)</label>
+        <input type="number" id="manual-tdee" class="form-input" placeholder="Например: 2200">
+      </div>
+      
+      <div class="input-group">
+        <label>Дневная Цель (ккал в день)</label>
+        <input type="number" id="manual-cal-target" class="form-input" placeholder="Например: 1900">
+      </div>
+      
+      <div class="input-group">
+        <label>Цель по белку (г)</label>
+        <input type="number" id="manual-pro-target" class="form-input" placeholder="Например: 130">
+      </div>
 
-<!-- Настройка нормы (Вручную) -->
-<div class="card">
-  <h3 style="font-size: 15px; font-weight: 800; margin-bottom: 6px;">Настройка нормы</h3>
-  <p style="font-size: 11px; color: var(--text-muted); margin-bottom: 12px;">Укажите вручную, сколько вы тратите (TDEE) и какая у вас цель для дневника.</p>
-  
-  <div class="input-group">
-    <label>Теоретическая норма TDEE (ккал/день)</label>
-    <input type="number" id="manual-tdee" class="input" placeholder="Например: 2200">
-  </div>
-  <div class="input-group">
-    <label>Глобальная Цель (ккал в день)</label>
-    <input type="number" id="manual-cal-target" class="input" placeholder="Например: 1900">
-  </div>
-  <div class="input-group">
-    <label>Глобальная Цель по белку (г)</label>
-    <input type="number" id="manual-pro-target" class="input" placeholder="Например: 130">
-  </div>
+      <button class="btn-primary" onclick="saveManualNorm()">Сохранить настройки</button>
+      
+      <!-- Информационная плашка -->
+      <div class="norm-info-box" style="margin-top: 14px;">
+        <div style="display: flex; justify-content: space-between; margin-bottom: 6px;">
+          <span style="color:var(--text-muted);">Норма (TDEE):</span>
+          <strong id="prof-tdee-val">-</strong>
+        </div>
+        <div style="display: flex; justify-content: space-between; margin-bottom: 6px;">
+          <span style="color:var(--text-muted);">Текущая цель:</span>
+          <strong id="prof-target-cal" style="color: var(--accent-green);">-</strong>
+        </div>
+        <div style="display: flex; justify-content: space-between;">
+          <span style="color:var(--text-muted);">Цель по белку:</span>
+          <strong id="prof-target-pro">-</strong>
+        </div>
+      </div>
+    </div>
 
-  <button class="btn" onclick="saveManualNorm()">Сохранить настройки</button>
-</div>
+    <!-- Текстовый экспорт -->
+    <div class="backup-box">
+      <h4><i data-lucide="file-text" style="width:18px;height:18px;color:var(--text-muted);"></i> Текстовый Экспорт</h4>
+      <p style="font-size:12px; color:var(--text-muted); margin: 6px 0 12px 0;">
+        Сгенерировать простой текстовый лог всего дневника и базы блюд для сохранения в заметки.
+      </p>
+      <button class="btn-primary" style="background: var(--bg-subtle); color: var(--text-main); border: 1px solid var(--border);" onclick="exportText()">
+        Сгенерировать текст
+      </button>
+    </div>
 
-<!-- Текстовый экспорт -->
-<div class="card" style="padding: 14px;">
-  <h4 style="font-size:14px; font-weight:700; margin-bottom:6px;"><i data-lucide="file-text" style="width:16px;vertical-align:middle;color:var(--text-muted);"></i> Текстовый Экспорт</h4>
-  <p style="font-size:11px; color:var(--text-muted); margin-bottom:10px;">Сгенерировать лог дневника и базу для сохранения в заметки.</p>
-  <button class="btn outline" onclick="exportText()">Открыть текст</button>
-</div>
-
-<!-- Файловые бэкапы -->
-<div class="card" style="padding: 14px;">
-  <h4 style="font-size:14px; font-weight:700; margin-bottom:6px;"><i data-lucide="shield-check" style="width:16px;vertical-align:middle;color:var(--text-muted);"></i> Резервные копии (Файлы)</h4>
-  <div style="display:grid; grid-template-columns: 1fr 1fr; gap:8px;">
-    <button class="btn outline" style="font-size:12px; padding:10px;" onclick="exportFullJsonBackup()">Скачать JSON</button>
-    <button class="btn outline" style="font-size:12px; padding:10px;" onclick="document.getElementById('jsonFileInput').click()">Загрузить JSON</button>
-    <button class="btn outline" style="font-size:12px; padding:10px;" onclick="exportFullExcel()">Скачать Excel</button>
-    <button class="btn outline" style="font-size:12px; padding:10px;" onclick="document.getElementById('excelFileInput').click()">Загрузить Excel</button>
+    <!-- Файловые бэкапы -->
+    <div class="backup-box">
+      <h4><i data-lucide="shield-check" style="width:18px;height:18px;color:var(--text-muted);"></i> Файловые бэкапы</h4>
+      
+      <div class="backup-btn-group">
+        <button class="btn-action-outline" onclick="exportFullJsonBackup()">
+          <i data-lucide="download" style="width:14px;height:14px;"></i> Скачать JSON
+        </button>
+        <button class="btn-action-outline" onclick="triggerJsonImport()">
+          <i data-lucide="upload" style="width:14px;height:14px;"></i> Загрузить JSON
+        </button>
+      </div>
+      
+      <div class="backup-btn-group" style="margin-top: 8px;">
+        <button class="btn-action-outline" onclick="exportFullExcel()">
+          <i data-lucide="file-down" style="width:14px;height:14px;"></i> Скачать Excel
+        </button>
+        <button class="btn-action-outline" onclick="triggerExcelImport()">
+          <i data-lucide="file-up" style="width:14px;height:14px;"></i> Загрузить Excel
+        </button>
+      </div>
+    </div>
+    
+    <!-- Напоминания -->
+    <div class="backup-box">
+      <h4><i data-lucide="bell-ring" style="width:18px;height:18px;color:var(--accent-orange);"></i> Напоминание о бэкапе</h4>
+      <div style="display:flex; gap:10px; align-items:center; margin-top: 10px;">
+        <input type="time" id="backup-time-input" class="form-input" style="flex:1;">
+        <button class="btn-primary" style="margin:0; width:auto; padding: 10px 16px;" onclick="saveNotificationSettings()">Вкл</button>
+      </div>
+    </div>
+    
   </div>
-</div>
-  </div>
-</div> <!-- End of container -->
-
-<!-- Нижнее меню -->
+</div> <!-- Конец .container -->
+<!-- ================= НИЖНЕЕ НАВИГАЦИОННОЕ МЕНЮ ================= -->
 <div class="nav-bar">
-  <div class="nav-tab active" onclick="switchTab('diary', this)"><i data-lucide="book-open"></i><span>Дневник</span></div>
-  <div class="nav-tab" onclick="switchTab('calendar', this)"><i data-lucide="calendar"></i><span>Анализ</span></div>
-  <div class="nav-tab" onclick="switchTab('products', this)"><i data-lucide="database"></i><span>База</span></div>
-  <div class="nav-tab" onclick="switchTab('stats', this)"><i data-lucide="bar-chart-2"></i><span>Графики</span></div>
-  <div class="nav-tab" onclick="switchTab('profile', this)"><i data-lucide="user"></i><span>Настройки</span></div>
+  <div class="nav-tab active" onclick="switchTab('diary', this)">
+    <i data-lucide="book-open" style="width:20px;height:20px;"></i><span>Дневник</span>
+  </div>
+  <div class="nav-tab" onclick="switchTab('calendar', this)">
+    <i data-lucide="calendar" style="width:20px;height:20px;"></i><span>Анализ</span>
+  </div>
+  <div class="nav-tab" onclick="switchTab('products', this)">
+    <i data-lucide="database" style="width:20px;height:20px;"></i><span>База</span>
+  </div>
+  <div class="nav-tab" onclick="switchTab('stats', this)">
+    <i data-lucide="bar-chart-2" style="width:20px;height:20px;"></i><span>Графики</span>
+  </div>
+  <div class="nav-tab" onclick="switchTab('profile', this)">
+    <i data-lucide="user" style="width:20px;height:20px;"></i><span>Настройки</span>
+  </div>
 </div>
 
-<!-- Модалка: Импорт JSON / Текста -->
-<div class="overlay" id="importModal">
-  <div class="modal">
-    <h3>📥 Импорт еды</h3>
-    <p style="font-size:11px; color:var(--text-muted); margin-bottom:10px;">Вставьте сюда сгенерированный ИИ JSON-код или просто текст лога.</p>
-    <textarea class="input" id="jsonInput" style="height:140px; font-family:monospace;" placeholder='Вставьте сюда JSON или текст...'></textarea>
-    <div style="display:flex; gap:10px; margin-top:6px;">
-      <button class="btn outline" onclick="closeImportModal()">Отмена</button>
-      <button class="btn" onclick="applyImport()">Применить</button>
+<!-- ================= МОДАЛКИ (ВСПЛЫВАЮЩИЕ ОКНА) ================= -->
+
+<!-- 1. Модалка: Умный Импорт (JSON / Текст) -->
+<div class="modal-overlay" id="importModal">
+  <div class="modal-sheet">
+    <h3>📥 Импорт еды из чата</h3>
+    <p style="font-size:11px; color:var(--text-muted); margin-top:4px; margin-bottom:12px;">
+      Вставьте сюда сгенерированный ИИ JSON-код или просто скопированный текст отчета. Парсер разберется!
+    </p>
+    
+    <div class="seg-control">
+      <button class="seg-btn active" id="mode-overwrite" onclick="setImportMode('overwrite')">Заменить день</button>
+      <button class="seg-btn" id="mode-append" onclick="setImportMode('append')">Добавить (слияние)</button>
+    </div>
+    
+    <textarea class="modal-textarea" id="jsonInput" placeholder='Вставьте сюда JSON или текстовый лог...'></textarea>
+    
+    <div class="btn-row">
+      <button class="btn-secondary" onclick="closeImportModal()">Отмена</button>
+      <button class="btn-primary" onclick="applyImport()">Применить</button>
     </div>
   </div>
 </div>
 
-<!-- Модалка: Ручной ввод / Редактирование -->
-<div class="overlay" id="manualEntryModal">
-  <div class="modal">
+<!-- 2. Модалка: Ручной ввод / Редактирование блюд -->
+<div class="modal-overlay" id="manualEntryModal">
+  <div class="modal-sheet">
     <h3 id="manualModalTitle">➕ Добавить блюдо</h3>
+    
+    <!-- Скрытые поля для логики редактирования -->
     <input type="hidden" id="manualEntryMealName" value="">
     <input type="hidden" id="manualEntryEditIndex" value="-1">
+    
+    <div class="input-group" style="margin-top:14px;">
+      <label>Прием пищи</label>
+      <input type="text" id="manualMeal" class="form-input" placeholder="Например: Завтрак">
+    </div>
+    
+    <div class="input-group">
+      <label>Название блюда (и граммовка)</label>
+      <input type="text" id="manualName" class="form-input" placeholder="Например: Яблоко (100 г)">
+    </div>
+    
+    <div style="display:grid; grid-template-columns: 1fr 1fr; gap:10px;">
+      <div class="input-group">
+        <label>Калории (ккал)</label>
+        <input type="number" id="manualCal" class="form-input" placeholder="0">
+      </div>
+      <div class="input-group">
+        <label>Белки (г)</label>
+        <input type="number" id="manualPro" class="form-input" placeholder="0" step="0.1">
+      </div>
+      <div class="input-group">
+        <label>Жиры (г)</label>
+        <input type="number" id="manualFat" class="form-input" placeholder="0" step="0.1">
+      </div>
+      <div class="input-group">
+        <label>Углеводы (г)</label>
+        <input type="number" id="manualCarb" class="form-input" placeholder="0" step="0.1">
+      </div>
+    </div>
+    
+    <div class="btn-row">
+      <button class="btn-secondary" onclick="closeManualEntryModal()">Отмена</button>
+      <button class="btn-primary" onclick="saveManualEntry()">Сохранить</button>
+    </div>
+  </div>
+</div>
 
-<div class="input-group" style="margin-top:12px;">
-  <label>Прием пищи (например: Завтрак)</label>
-  <input type="text" id="manualMeal" class="input" placeholder="Завтрак">
-</div>
-<div class="input-group">
-  <label>Название и граммовка</label>
-  <input type="text" id="manualName" class="input" placeholder="Яблоко (100 г)">
-</div>
-<div style="display:grid; grid-template-columns: 1fr 1fr; gap:8px;">
-  <div class="input-group">
-    <label>Ккал</label>
-    <input type="number" id="manualCal" class="input" placeholder="0">
-  </div>
-  <div class="input-group">
-    <label>Белки (г)</label>
-    <input type="number" id="manualPro" class="input" placeholder="0" step="0.1">
-  </div>
-  <div class="input-group">
-    <label>Жиры (г)</label>
-    <input type="number" id="manualFat" class="input" placeholder="0" step="0.1">
-  </div>
-  <div class="input-group">
-    <label>Углеводы (г)</label>
-    <input type="number" id="manualCarb" class="input" placeholder="0" step="0.1">
-  </div>
-</div>
-<div style="display:flex; gap:10px; margin-top:8px;">
-  <button class="btn outline" onclick="closeManualEntryModal()">Отмена</button>
-  <button class="btn" onclick="saveManualEntry()">Сохранить</button>
-</div>
+<!-- 3. Модалка: Цель на этот конкретный день -->
+<div class="modal-overlay" id="targetModal">
+  <div class="modal-sheet">
+    <h3>🎯 Цель на этот день</h3>
+    <p style="font-size:11px; color:var(--text-muted); margin-bottom:12px;">Измените цель, если сегодня особенный день (например, тренировка или читмил).</p>
+    
+    <div class="input-group">
+      <label>Калории (ккал)</label>
+      <input type="number" id="targetCalInput" class="form-input">
+    </div>
+    <div class="input-group">
+      <label>Белок (г)</label>
+      <input type="number" id="targetProInput" class="form-input">
+    </div>
+    
+    <div class="btn-row">
+      <button class="btn-secondary" onclick="closeTargetModal()">Отмена</button>
+      <button class="btn-primary" onclick="saveTargetModal()">Сохранить</button>
+    </div>
   </div>
 </div>
 
-<!-- Модалка: Текстовый экспорт -->
-<div class="overlay" id="textExportModal">
-  <div class="modal" style="max-width:90%;">
+<!-- 4. Модалка: Текстовый экспорт -->
+<div class="modal-overlay" id="textExportModal">
+  <div class="modal-sheet" style="max-width: 90%;">
     <h3>📄 Текстовый бэкап</h3>
-    <p style="font-size:11px; color:var(--text-muted); margin-bottom:10px;">Весь ваш дневник в простом текстовом виде.</p>
-    <textarea class="input" id="textExpArea" style="height:250px; font-family:monospace; font-size:11px; white-space:pre;" readonly></textarea>
-    <button class="btn" style="margin-top: 4px;" onclick="copyTextExport()"><i data-lucide="copy" style="width:16px;"></i> Скопировать всё</button>
-    <button class="btn outline" style="margin-top: 8px;" onclick="closeTextExportModal()">Закрыть</button>
+    <p style="font-size:12px; color:var(--text-muted); margin-bottom:10px;">
+      Это полная текстовая копия вашего дневника и базы блюд.
+    </p>
+    
+    <textarea class="text-export-area" id="textExpArea" readonly></textarea>
+    
+    <button class="btn-primary" style="margin-top: 12px;" onclick="copyTextExport()">
+      <i data-lucide="copy" style="width:16px;height:16px;"></i> Скопировать всё
+    </button>
+    
+    <button class="btn-secondary" style="margin-top: 8px;" onclick="closeTextExportModal()">
+      Закрыть
+    </button>
   </div>
 </div>
 <script>
-  // = 1. ИНИЦИАЛИЗАЦИЯ И ХРАНИЛИЩЕ =
+  // ================= 1. ИНИЦИАЛИЗАЦИЯ И ХРАНИЛИЩЕ =================
   const DEFAULT_STATE = { 
     theme: "light",
     currentDate: new Date().toISOString().split("T")[0], 
     userProfile: { 
+      mode: "manual",
       tdee: 2200, 
       defaultTargetCal: 1900, 
       defaultTargetPro: 130 
@@ -380,99 +1205,252 @@
   };
   
   let AppState;
-  try { AppState = JSON.parse(localStorage.getItem("kbju_v6")) || DEFAULT_STATE; } 
-  catch(e) { AppState = DEFAULT_STATE; }
+  try { 
+    AppState = JSON.parse(localStorage.getItem("kbju_tracker_v7")) || DEFAULT_STATE; 
+    // Защита от старых сохранений без новых полей
+    if (!AppState.userProfile) AppState.userProfile = DEFAULT_STATE.userProfile;
+    if (!AppState.userProfile.tdee) AppState.userProfile.tdee = 2200;
+  } catch (e) { 
+    AppState = DEFAULT_STATE; 
+  }
   
-  if (!AppState.userProfile) AppState.userProfile = DEFAULT_STATE.userProfile;
-  if (!AppState.userProfile.tdee) AppState.userProfile.tdee = 2200;
-
   let currentDate = AppState.currentDate || new Date().toISOString().split("T")[0];
   let importMode = "overwrite";
   let collapsedMeals = new Set();
+  
   let doughnutChart = null;
   let weekChart = null;
   let calViewYear = new Date().getFullYear();
   let calViewMonth = new Date().getMonth();
   let selectedCalDates = new Set();
 
+  const motivationalQuotes = [
+    "☀️ Начинаем день с чистого листа! Что вкусненького съедим?",
+    "🔥 Отличный темп! Топим жир и идем к цели.",
+    "😎 Идем по плану! Место для вкусняшек ещё есть.",
+    "🎯 Ювелирная точность! КБЖУ в идеале.",
+    "🙈 Чуть перебрали... Ничего страшного, завтра компенсируем! 🏃‍♂️"
+  ];
+
   function saveState() {
     try { 
       AppState.currentDate = currentDate;
-      localStorage.setItem("kbju_v6", JSON.stringify(AppState)); 
-    } catch (e) { alert("⚠️ Ошибка: Память переполнена!"); }
+      localStorage.setItem("kbju_tracker_v7", JSON.stringify(AppState)); 
+    } catch (e) { 
+      alert("⚠️ Ошибка: Память телефона переполнена!"); 
+    }
   }
 
-  // = 2. ИНТЕРФЕЙС, ТЕМА, УВЕДОМЛЕНИЯ =
+  // ================= 2. ИНТЕРФЕЙС И НАВИГАЦИЯ =================
   function applyTheme() {
     document.documentElement.setAttribute("data-theme", AppState.theme || "light");
     const icon = document.getElementById("theme-icon");
-    if(icon) icon.setAttribute("data-lucide", AppState.theme = "dark" ? "sun" : "moon");
-    lucide.createIcons();
+    if (icon) {
+        icon.setAttribute("data-lucide", AppState.theme === "dark" ? "sun" : "moon");
+        lucide.createIcons();
+    }
   }
+
   function toggleTheme() {
-    AppState.theme = AppState.theme = "dark" ? "light" : "dark";
-    applyTheme(); saveState();
+    AppState.theme = AppState.theme === "dark" ? "light" : "dark";
+    applyTheme(); 
+    saveState();
   }
-  
-  function switchTab(t, el) { 
-    document.querySelectorAll(".tab-content, .nav-tab").forEach(e => e.classList.remove("active")); 
-    document.getElementById(`tab-${t}`).classList.add("active"); 
-    if(el) el.classList.add("active");
-    else document.querySelector(`.nav-tab[onclick*="${t}"]`).classList.add("active");
+
+  function switchTab(tabId, element) { 
+    document.querySelectorAll(".tab-content").forEach(el => el.classList.remove("active")); 
+    document.querySelectorAll(".nav-tab").forEach(el => el.classList.remove("active")); 
     
-    if(t = 'calendar') renderCalendar(); 
-    if(t = 'products') renderProductDatabase(); 
-    if(t = 'stats') renderStats(); 
-    if(t = 'profile') updateProfileUI(); 
+    document.getElementById(`tab-${tabId}`).classList.add("active"); 
+    
+    if (element) {
+      element.classList.add("active");
+    } else {
+      document.querySelector(`.nav-tab[onclick*="${tabId}"]`).classList.add("active");
+    }
+    
+    if (tabId === 'calendar') renderCalendar(); 
+    if (tabId === 'products') renderProductDatabase(); 
+    if (tabId === 'stats') renderStats(); 
+    if (tabId === 'profile') updateProfileUI(); 
   }
 
   function saveNotificationSettings() {
     const time = document.getElementById("backup-time-input").value;
-    if(time) {
-      Notification.requestPermission().then(p => {
-        if(p = "granted") {
-          if(!AppState.settings) AppState.settings = {};
-          AppState.settings.backupTime = time;
-          saveState(); alert(`🔔 Уведомления включены на ${time}`);
-        } else alert("Разрешите уведомления в браузере!");
-      });
+    if (time) {
+        Notification.requestPermission().then(perm => {
+            if (perm === "granted") {
+                if (!AppState.settings) AppState.settings = {};
+                AppState.settings.backupTime = time;
+                saveState();
+                alert(`🔔 Уведомление о бэкапе установлено на ${time}`);
+            } else {
+                alert("Разрешите уведомления в настройках телефона/браузера.");
+            }
+        });
     }
   }
 
-  // = 3. ДНЕВНИК И РУЧНОЙ ВВОД =
-  function changeDate(d) { 
-    let dt = new Date(currentDate); dt.setDate(dt.getDate() + d); 
-    currentDate = dt.toISOString().split("T")[0]; renderDay(); 
-  }
-
-  function toggleMealCollapse(m) {
-    collapsedMeals.has(m) ? collapsedMeals.delete(m) : collapsedMeals.add(m);
-    renderDay();
+  // ================= 3. ДНЕВНИК И БЛЮДА (РЕНДЕР) =================
+  function changeDate(daysToAdd) { 
+    let d = new Date(currentDate); 
+    d.setDate(d.getDate() + daysToAdd); 
+    currentDate = d.toISOString().split("T")[0]; 
+    renderDay(); 
   }
 
   function deleteCurrentDay() {
-    if (confirm("🚨 Точно удалить ВЕСЬ день?")) {
-      delete AppState.days[currentDate]; saveState(); renderDay();
+    if (confirm("🚨 Вы уверены, что хотите удалить весь день?")) {
+        delete AppState.days[currentDate];
+        saveState(); 
+        renderDay();
     }
   }
 
-  function deleteFoodItem(meal, idx) {
-    if (confirm("Удалить блюдо? 🗑️")) {
-      let m = AppState.days[currentDate].meals.find(x => x.meal = meal);
-      m.items.splice(idx, 1);
-      if(m.items.length = 0) AppState.days[currentDate].meals = AppState.days[currentDate].meals.filter(x => x.meal ! meal);
-      saveState(); renderDay(); renderProductDatabase();
+  function toggleMealCollapse(mealName) {
+    if (collapsedMeals.has(mealName)) {
+      collapsedMeals.delete(mealName);
+    } else {
+      collapsedMeals.add(mealName);
+    }
+    renderDay();
+  }
+
+  function deleteFoodItem(mealName, itemIdx) {
+    if (confirm("Удалить это блюдо? 🗑️")) {
+        let meal = AppState.days[currentDate].meals.find(m => m.meal === mealName);
+        if (meal) {
+            meal.items.splice(itemIdx, 1);
+            if (meal.items.length === 0) {
+              AppState.days[currentDate].meals = AppState.days[currentDate].meals.filter(m => m.meal !== mealName);
+            }
+            saveState(); 
+            renderDay();
+        }
     }
   }
 
-  // Модалка ручного ввода/редактирования
+  function getMotivationalText(consumed, target) {
+    if (consumed === 0) return motivationalQuotes[0];
+    const diff = target - consumed;
+    if (diff < 0) return motivationalQuotes[4];
+    if (diff === 0 || diff < 50) return motivationalQuotes[3];
+    if (diff > target * 0.5) return motivationalQuotes[1];
+    return motivationalQuotes[2];
+  }
+
+  function renderDay() {
+    const dayData = AppState.days[currentDate] || { 
+      date: currentDate, 
+      target_calories: AppState.userProfile.defaultTargetCal, 
+      meals: [] 
+    };
+    
+    const d = new Date(currentDate);
+    const months = ["января","февраля","марта","апреля","мая","июня","июля","августа","сентября","октября","ноября","декабря"];
+    const isToday = new Date().toISOString().split("T")[0] === currentDate;
+    document.getElementById("currentDateLabel").innerText = isToday ? "Сегодня" : `${d.getDate()} ${months[d.getMonth()]}`;
+
+    let totalCal = 0, totalP = 0, totalF = 0, totalC = 0;
+    (dayData.meals || []).forEach(m => {
+      (m.items || []).forEach(i => { 
+        totalCal += Number(i.cal) || 0; 
+        totalP += Number(i.p) || 0; 
+        totalF += Number(i.f) || 0; 
+        totalC += Number(i.c) || 0; 
+      });
+    });
+
+    const targetCal = dayData.target_calories || AppState.userProfile.defaultTargetCal;
+    document.getElementById("val-consumed").innerText = Math.round(totalCal);
+    document.getElementById("val-target").innerText = targetCal;
+    document.getElementById("val-remaining").innerText = Math.round(Math.max(0, targetCal - totalCal));
+    document.getElementById("cal-progress").style.width = `${Math.min(100, Math.round((totalCal / targetCal) * 100))}%`;
+    document.getElementById("motivational-text").innerText = getMotivationalText(totalCal, targetCal);
+
+    document.getElementById("val-protein").innerText = `${totalP.toFixed(1)} г`;
+    document.getElementById("val-fat").innerText = `${totalF.toFixed(1)} г`;
+    document.getElementById("val-carbs").innerText = `${totalC.toFixed(1)} г`;
+
+    const calP = totalP * 4, calF = totalF * 9, calC = totalC * 4;
+    const sum = calP + calF + calC || 1;
+    document.getElementById("pct-protein").innerText = `(${Math.round((calP/sum)*100)}%)`;
+    document.getElementById("pct-fat").innerText = `(${Math.round((calF/sum)*100)}%)`;
+    document.getElementById("pct-carbs").innerText = `(${Math.round((calC/sum)*100)}%)`;
+    document.getElementById("macroTotalKcal").innerHTML = `${Math.round(totalCal)}<br><span style="font-size:9px;color:var(--text-muted);font-weight:600;">ккал</span>`;
+
+    renderDoughnut(calP, calF, calC);
+
+    const container = document.getElementById("mealsContainer");
+    if (!dayData.meals || dayData.meals.length === 0) {
+      container.innerHTML = `<div class="empty-state">Дневник пуст.<br>Импортируйте текст или добавьте вручную! 🍽️</div>`;
+    } else {
+      container.innerHTML = dayData.meals.map(m => {
+        let mealCal = 0;
+        const isCollapsed = collapsedMeals.has(m.meal);
+        
+        const itemsHtml = (m.items || []).map((i, idx) => {
+          mealCal += Number(i.cal) || 0;
+          return `
+            <div class="food-item">
+              <div>
+                <div class="food-name">${i.name}</div>
+                <div class="food-macros">Б: ${i.p}г • Ж: ${i.f}г • У: ${i.c}г</div>
+              </div>
+              <div class="food-cal-block">
+                <div class="food-cal">${i.cal} <span style="font-size:10px;font-weight:500;color:var(--text-muted)">ккал</span></div>
+                <button class="action-icon-btn" onclick="openManualEntryModal('${m.meal}', ${idx})">
+                  <i data-lucide="edit-2" style="width:14px;height:14px;"></i>
+                </button>
+                <button class="action-icon-btn del-item-btn" onclick="deleteFoodItem('${m.meal}', ${idx})">
+                  <i data-lucide="trash-2" style="width:14px;height:14px;"></i>
+                </button>
+              </div>
+            </div>`;
+        }).join("");
+        
+        return `
+          <div class="meal-group ${isCollapsed ? 'collapsed' : ''}">
+            <div class="meal-group-header" onclick="toggleMealCollapse('${m.meal}')">
+              <span class="meal-group-title">
+                <i data-lucide="chevron-down" class="chevron-icon" style="width:16px;height:16px;"></i> ${m.meal}
+              </span>
+              <span class="meal-group-cals">${Math.round(mealCal)} ккал</span>
+            </div>
+            <div class="meal-items-container">${itemsHtml}</div>
+          </div>`;
+      }).join("");
+    }
+    lucide.createIcons();
+  }
+
+  function renderDoughnut(pCal, fCal, cCal) {
+    const ctx = document.getElementById("macroDoughnut").getContext("2d");
+    const data = (pCal === 0 && fCal === 0 && cCal === 0) ? [1,1,1] : [pCal, fCal, cCal];
+    const colors = (pCal === 0 && fCal === 0 && cCal === 0) ? ["#E2E8F0","#E2E8F0","#E2E8F0"] : ["#3B82F6", "#F59E0B", "#10B981"];
+    
+    if (doughnutChart) { 
+      doughnutChart.data.datasets[0].data = data; 
+      doughnutChart.data.datasets[0].backgroundColor = colors; 
+      doughnutChart.update(); 
+    } else { 
+      doughnutChart = new Chart(ctx, { 
+        type: "doughnut", 
+        data: { datasets: [{ data: data, backgroundColor: colors, borderWidth: 0, cutout: "76%" }] }, 
+        options: { plugins: { legend: { display: false }, tooltip: { enabled: false } } } 
+      }); 
+    }
+  }
+
+  // ================= 4. РУЧНОЙ ВВОД (МОДАЛКА) =================
   function openManualEntryModal(mealName = '', itemIdx = -1) {
     document.getElementById('manualEntryMealName').value = mealName;
     document.getElementById('manualEntryEditIndex').value = itemIdx;
     
-    if(itemIdx >= 0) {
-      document.getElementById('manualModalTitle').innerText = '✏️ Редактировать';
-      let item = AppState.days[currentDate].meals.find(m => m.meal = mealName).items[itemIdx];
+    if (itemIdx >= 0) {
+      document.getElementById('manualModalTitle').innerText = '✏️ Редактировать блюдо';
+      let item = AppState.days[currentDate].meals.find(m => m.meal === mealName).items[itemIdx];
+      
       document.getElementById('manualMeal').value = mealName;
       document.getElementById('manualName').value = item.name;
       document.getElementById('manualCal').value = item.cal;
@@ -488,11 +1466,14 @@
       document.getElementById('manualFat').value = '';
       document.getElementById('manualCarb').value = '';
     }
+    
     document.getElementById('manualEntryModal').classList.add('open');
   }
-  
-  function closeManualEntryModal() { document.getElementById('manualEntryModal').classList.remove('open'); }
-  
+
+  function closeManualEntryModal() { 
+    document.getElementById('manualEntryModal').classList.remove('open'); 
+  }
+
   function saveManualEntry() {
     const mealName = document.getElementById('manualMeal').value.trim() || 'Перекус';
     const name = document.getElementById('manualName').value.trim() || 'Новое блюдо';
@@ -504,341 +1485,642 @@
     const oldMealName = document.getElementById('manualEntryMealName').value;
     const editIdx = Number(document.getElementById('manualEntryEditIndex').value);
     
-    if(!AppState.days[currentDate]) AppState.days[currentDate] = { date: currentDate, meals: [] };
-    
-    // Если редактируем
-    if(editIdx >= 0 && oldMealName = mealName) {
-      AppState.days[currentDate].meals.find(m => m.meal = mealName).items[editIdx] = {name, cal, p, f, c};
-    } else {
-      // Если удалили из старого (при смене названия приема пищи)
-      if(editIdx >= 0) {
-        let oldM = AppState.days[currentDate].meals.find(m => m.meal = oldMealName);
-        oldM.items.splice(editIdx, 1);
-        if(oldM.items.length = 0) AppState.days[currentDate].meals = AppState.days[currentDate].meals.filter(x => x.meal ! oldMealName);
-      }
-      // Добавляем в новый/текущий
-      let mObj = AppState.days[currentDate].meals.find(m => m.meal = mealName);
-      if(!mObj) { mObj = { meal: mealName, items: [] }; AppState.days[currentDate].meals.push(mObj); }
-      mObj.items.push({name, cal, p, f, c});
+    if (!AppState.days[currentDate]) {
+      AppState.days[currentDate] = { date: currentDate, target_calories: AppState.userProfile.defaultTargetCal, meals: [] };
     }
     
-    // Сохраняем в базу
-    if(!AppState.productsDb) AppState.productsDb = {};
+    if (editIdx >= 0 && oldMealName === mealName) {
+      // Обычное редактирование (без смены приема пищи)
+      AppState.days[currentDate].meals.find(m => m.meal === mealName).items[editIdx] = { name, cal, p, f, c };
+    } else {
+      // Если это редактирование, но сменили название приема пищи - удаляем из старого
+      if (editIdx >= 0) {
+        let oldM = AppState.days[currentDate].meals.find(m => m.meal === oldMealName);
+        if (oldM) {
+          oldM.items.splice(editIdx, 1);
+          if (oldM.items.length === 0) {
+            AppState.days[currentDate].meals = AppState.days[currentDate].meals.filter(x => x.meal !== oldMealName);
+          }
+        }
+      }
+      
+      // Добавляем в нужный прием пищи
+      let targetMeal = AppState.days[currentDate].meals.find(m => m.meal === mealName);
+      if (!targetMeal) { 
+        targetMeal = { meal: mealName, items: [] }; 
+        AppState.days[currentDate].meals.push(targetMeal); 
+      }
+      targetMeal.items.push({ name, cal, p, f, c });
+    }
+    
+    // Авто-сохранение в базу продуктов
+    if (!AppState.productsDb) AppState.productsDb = {};
     AppState.productsDb[name] = { cal, p, f, c, lastUsed: currentDate };
     
-    saveState(); closeManualEntryModal(); renderDay();
+    saveState(); 
+    closeManualEntryModal(); 
+    renderDay();
   }
 
-  function renderDay() {
-    const dayData = AppState.days[currentDate] || { target_calories: AppState.userProfile.defaultTargetCal, meals: [] };
-    const isToday = new Date().toISOString().split("T")[0] = currentDate;
-    document.getElementById("currentDateLabel").innerText = isToday ? "Сегодня" : currentDate.split('-').reverse().slice(0,2).join('.');
-
-    let tCal=0, tP=0, tF=0, tC=0;
-    (dayData.meals || []).forEach(m => (m.items || []).forEach(i => { tCal+=Number(i.cal)||0; tP+=Number(i.p)||0; tF+=Number(i.f)||0; tC+=Number(i.c)||0; }));
-
-    const targetCal = dayData.target_calories || AppState.userProfile.defaultTargetCal;
-    document.getElementById("val-consumed").innerText = Math.round(tCal);
-    document.getElementById("val-target").innerText = targetCal;
-    document.getElementById("val-remaining").innerText = Math.max(0, Math.round(targetCal - tCal));
-    document.getElementById("cal-progress").style.width = `${Math.min(100, Math.round((tCal/targetCal)*100))}%`;
-
-    document.getElementById("val-protein").innerText = `${tP.toFixed(1)} г`;
-    document.getElementById("val-fat").innerText = `${tF.toFixed(1)} г`;
-    document.getElementById("val-carbs").innerText = `${tC.toFixed(1)} г`;
-
-    const cP=tP*4, cF=tF*9, cC=tC*4, s = cP+cF+cC || 1;
-    document.getElementById("pct-protein").innerText = `(${Math.round(cP/s*100)}%)`;
-    document.getElementById("pct-fat").innerText = `(${Math.round(cF/s*100)}%)`;
-    document.getElementById("pct-carbs").innerText = `(${Math.round(cC/s*100)}%)`;
-    document.getElementById("macroTotalKcal").innerHTML = `${Math.round(tCal)}<br><span style="font-size:9px;color:var(--text-muted);">ккал</span>`;
-
-    renderDoughnut(cP, cF, cC);
-
-    const container = document.getElementById("mealsContainer");
-    if (!dayData.meals || dayData.meals.length = 0) {
-      container.innerHTML = `<div class="empty-state">Дневник пуст.<br>Нажмите «Импорт» или «+»</div>`;
-    } else {
-      container.innerHTML = dayData.meals.map(m => {
-        let mCal = 0; const isCol = collapsedMeals.has(m.meal);
-        const iHtml = (m.items || []).map((i, idx) => {
-          mCal += Number(i.cal)||0;
-          return `
-            <div class="food-item">
-              <div>
-                <div class="food-nm">${i.name}</div>
-                <div class="food-mc">Б: ${i.p}г • Ж: ${i.f}г • У: ${i.c}г</div>
-              </div>
-              <div class="f-acts">
-                <div class="food-cal">${i.cal} <span style="font-size:10px;font-weight:500;color:var(--text-muted)">ккал</span></div>
-                <button class="f-btn" onclick="openManualEntryModal('${m.meal}', ${idx})"><i data-lucide="edit-2" style="width:14px;"></i></button>
-                <button class="f-btn" style="color:var(--accent-red);" onclick="deleteFoodItem('${m.meal}', ${idx})"><i data-lucide="trash-2" style="width:14px;"></i></button>
-              </div>
-            </div>`;
-        }).join("");
-        return `<div class="meal-group"><div class="meal-head ${isCol?'colps':''}" onclick="toggleMealCollapse('${m.meal}')"><span><i data-lucide="chevron-down" class="chev" style="width:16px;vertical-align:middle;"></i> ${m.meal}</span><span class="m-cal">${Math.round(mCal)} ккал</span></div><div class="meal-body ${isCol?'colps':''}">${iHtml}</div></div>`;
-      }).join("");
-    }
-    lucide.createIcons();
+  // ================= 5. УМНЫЙ ИМПОРТ (JSON / ТЕКСТ) =================
+  function openImportModal() { 
+    document.getElementById("jsonInput").value = ""; 
+    document.getElementById("importModal").classList.add("open"); 
   }
-
-  function renderDoughnut(p, f, c) {
-    const ctx = document.getElementById("macroDoughnut").getContext("2d");
-    const dt = (p=0&&f=0&&c=0) ? [1,1,1] : [p,f,c];
-    const cl = (p=0&&f=0&&c=0) ? ["#E2E8F0","#E2E8F0","#E2E8F0"] : ["#3B82F6","#F59E0B","#10B981"];
-    if (doughnutChart) { doughnutChart.data.datasets[0].data=dt; doughnutChart.data.datasets[0].backgroundColor=cl; doughnutChart.update(); } 
-    else { doughnutChart = new Chart(ctx, { type: "doughnut", data: { datasets: [{ data: dt, backgroundColor: cl, borderWidth: 0, cutout: "76%" }] }, options: { plugins: { legend: { display: false }, tooltip: { enabled: false } } } }); }
-  }
-
-  // = 4. УМНЫЙ ИМПОРТ (JSON + ТЕКСТ) =
-  function openImportModal() { document.getElementById("jsonInput").value=""; document.getElementById("importModal").classList.add("open"); }
-  function closeImportModal() { document.getElementById("importModal").classList.remove("open"); }
-  function setImportMode(m) { importMode=m; document.getElementById("mode-overwrite").classList.toggle("active",m="overwrite"); document.getElementById("mode-append").classList.toggle("active",m="append"); }
-  async function quickPasteFromClipboard() { try { document.getElementById("jsonInput").value = await navigator.clipboard.readText(); applyImport(); } catch(e) { openImportModal(); } }
   
+  function closeImportModal() { 
+    document.getElementById("importModal").classList.remove("open"); 
+  }
+  
+  function setImportMode(m) { 
+    importMode = m; 
+    document.getElementById("mode-overwrite").classList.toggle("active", m === "overwrite"); 
+    document.getElementById("mode-append").classList.toggle("active", m === "append"); 
+  }
+  
+  async function quickPasteFromClipboard() { 
+    try { 
+      const text = await navigator.clipboard.readText();
+      document.getElementById("jsonInput").value = text;
+      applyImport(); 
+    } catch(e) { 
+      openImportModal(); 
+    } 
+  }
+
   function applyImport() {
     const text = document.getElementById("jsonInput").value.trim();
-    if(!text) return alert("Пусто!");
+    if (!text) {
+      alert("Поле пустое. Вставьте данные!");
+      return;
+    }
     
-    // 1. Пробуем JSON
-    let matchJson = text.match(/\{[\s\S]*\}/);
-    if(matchJson) {
+    // Пытаемся найти JSON блок
+    const jsonMatch = text.match(/\{[\s\S]*\}/);
+    if (jsonMatch) {
       try {
-        const p = JSON.parse(matchJson[0]);
-        let dStr = p.date || currentDate; currentDate = dStr;
-        let d = AppState.days[dStr] || { date: dStr, meals: [] };
-        if(importMode = "overwrite") { d.meals = p.meals || []; } 
-        else {
-          (p.meals || []).forEach(nM => {
-            let m = d.meals.find(x => x.meal = nM.meal); if(!m) { m = { meal: nM.meal, items: [] }; d.meals.push(m); }
-            (nM.items || []).forEach(nI => { let idx = m.items.findIndex(x => x.name = nI.name); if(idx>=0) m.items[idx]=nI; else m.items.push(nI); });
-          });
-        }
-        AppState.days[dStr] = d; syncToDb(d); saveState(); closeImportModal(); renderDay(); return alert("✅ JSON импортирован!");
-      } catch(e) { /* Игнорируем ошибку парсинга, пробуем как текст ниже */ }
+        const parsedData = JSON.parse(jsonMatch[0]);
+        processImportedData(parsedData);
+        return; 
+      } catch (e) {
+        // Если парсинг JSON не удался, идем дальше к текстовому парсеру
+      }
     }
     
-    // 2. Пробуем Текст (Парсер лога)
+    // Если JSON не найден или с ошибкой, используем ТЕКСТОВЫЙ ПАРСЕР
     try {
-      let lines = text.split('\n');
-      let targetDate = currentDate;
-      let currentMeal = "Перекус";
-      let d = AppState.days[targetDate] || { date: targetDate, meals: [] };
-      if (importMode = "overwrite") d.meals = [];
-
-      lines.forEach(l => {
-        l = l.trim();
-        // Ищем дату 📅 2026-08-18
-        let mDate = l.match(/📅\s*(\d{4}-\d{2}-\d{2})/);
-        if(mDate) { targetDate = mDate[1]; currentDate = targetDate; d = AppState.days[targetDate] || { date: targetDate, meals: [] }; if (importMode = "overwrite") d.meals = []; }
-        
-        // Ищем прием пищи 🍽 Завтрак:
-        let mMeal = l.match(/🍽\s*(.+):/);
-        if(mMeal) currentMeal = mMeal[1].trim();
-
-        // Ищем блюдо: - Яблоко (100 г) - 52 ккал (Б:0.3 Ж:0.4 У:11.4)
-        let mFood = l.match(/-\s*(.+?)\s*-\s*(\d+(?:\.\d+)?)\s*ккал\s*\(Б:([\d.]+)\s*Ж:([\d.]+)\s*У:([\d.]+)\)/);
-        if(mFood) {
-          let mObj = d.meals.find(x => x.meal = currentMeal);
-          if(!mObj) { mObj = { meal: currentMeal, items: [] }; d.meals.push(mObj); }
-          let itm = { name: mFood[1].trim(), cal: Number(mFood[2]), p: Number(mFood[3]), f: Number(mFood[4]), c: Number(mFood[5]) };
-          
-          let idx = mObj.items.findIndex(x => x.name = itm.name);
-          if(importMode = "overwrite" || idx < 0) mObj.items.push(itm);
-          else mObj.items[idx] = itm;
-        }
-      });
-      AppState.days[targetDate] = d; syncToDb(d); saveState(); closeImportModal(); renderDay(); alert("✅ Текст импортирован!");
-    } catch (e) { alert("Не удалось распознать текст. Проверьте формат."); }
-  }
-
-  function syncToDb(dData) {
-    if(!AppState.productsDb) AppState.productsDb = {};
-    dData.meals.forEach(m => m.items.forEach(i => { if(i.name) AppState.productsDb[i.name] = { cal:i.cal, p:i.p, f:i.f, c:i.c, lastUsed: currentDate }; }));
-  }
-
-  // = 5. КАЛЕНДАРЬ И ДЕФИЦИТ ОТ TDEE =
-  function renderCalendar() {
-    const mn = ["Январь","Февраль","Март","Апрель","Май","Июнь","Июль","Август","Сентябрь","Октябрь","Ноябрь","Декабрь"];
-    document.getElementById("calMonthTitle").innerText = `${mn[calViewMonth]} ${calViewYear}`;
-    const g = document.getElementById("calGrid"); g.innerHTML = "";
-    
-    const fD = (new Date(calViewYear, calViewMonth, 1).getDay() + 6) % 7;
-    const tD = new Date(calViewYear, calViewMonth + 1, 0).getDate();
-    
-    for (let i = 0; i < fD; i) g.innerHTML += `<div class="c-cell empty"></div>`;
-    for (let i = 1; i <= tD; i) {
-      let dStr = `${calViewYear}-${String(calViewMonth + 1).padStart(2, "0")}-${String(i).padStart(2, "0")}`;
-      let isH = AppState.days[dStr] && AppState.days[dStr].meals.length;
-      let cl = `c-cell ${isH?'has':''} ${dStr=currentDate?'today':''} ${selectedCalDates.has(dStr)?'sel':''}`;
-      g.innerHTML += `<div class="${cl}" onclick="selC('${dStr}')">${i} ${isH?'<div class="c-dot"></div>':''}</div>`;
+      const parsedFromText = parseTextLog(text);
+      if (parsedFromText && parsedFromText.meals.length > 0) {
+        processImportedData(parsedFromText);
+      } else {
+        alert("Не удалось распознать формат. Проверьте правильность скопированного текста или JSON.");
+      }
+    } catch (e) {
+      alert("Ошибка текстового импорта.");
     }
+  }
+
+  // Парсер обычного текста (выданного ботом)
+  function parseTextLog(text) {
+    const lines = text.split('\n');
+    let targetDate = currentDate;
+    let currentMeal = "Перекус";
+    let mealsData = [];
     
-    // Анализ
-    let sumCal=0, sumP=0, sumF=0, days=0, sumTdee=0;
-    Array.from(selectedCalDates).forEach(dt => {
-      let d = AppState.days[dt];
-      if (d && d.meals.length > 0) {
-        days; sumTdee += AppState.userProfile.tdee;
-        d.meals.forEach(m => m.items.forEach(i => { sumCal+=i.cal||0; sumP+=i.p||0; sumF+=i.f||0; }));
+    lines.forEach(line => {
+      line = line.trim();
+      
+      // Ищем дату формата: 📅 2026-08-18
+      const dateMatch = line.match(/📅\s*(\d{4}-\d{2}-\d{2})/);
+      if (dateMatch) {
+        targetDate = dateMatch[1];
+      }
+      
+      // Ищем прием пищи: 🍽 Завтрак:
+      const mealMatch = line.match(/🍽\s*(.+?):?/);
+      if (mealMatch) {
+        currentMeal = mealMatch[1].trim();
+        // Убираем двоеточие в конце, если есть
+        if(currentMeal.endsWith(':')) currentMeal = currentMeal.slice(0, -1);
+      }
+
+      // Ищем блюдо: - Яблоко (100 г) - 52 ккал (Б:0.3 Ж:0.4 У:11.4)
+      const foodMatch = line.match(/-\s*(.+?)\s*-\s*(\d+(?:\.\d+)?)\s*ккал\s*\(Б:([\d.]+)\s*Ж:([\d.]+)\s*У:([\d.]+)\)/i);
+      if (foodMatch) {
+        let mObj = mealsData.find(x => x.meal === currentMeal);
+        if (!mObj) { 
+          mObj = { meal: currentMeal, items: [] }; 
+          mealsData.push(mObj); 
+        }
+        
+        mObj.items.push({
+          name: foodMatch[1].trim(),
+          cal: Number(foodMatch[2]),
+          p: Number(foodMatch[3]),
+          f: Number(foodMatch[4]),
+          c: Number(foodMatch[5])
+        });
       }
     });
     
-    const div = days || 1;
-    const def = sumTdee - sumCal;
-    const avgDef = Math.round(def / div);
+    return { date: targetDate, meals: mealsData };
+  }
+
+  // Общая функция обработки полученных данных
+  function processImportedData(parsedData) {
+    const targetDate = parsedData.date || currentDate;
+    currentDate = targetDate;
+    
+    let day = AppState.days[targetDate] || { 
+      date: targetDate, 
+      target_calories: AppState.userProfile.defaultTargetCal, 
+      meals: [] 
+    };
+
+    if (importMode === "overwrite") {
+      if (parsedData.target_calories) day.target_calories = parsedData.target_calories;
+      day.meals = parsedData.meals || [];
+    } else {
+      // Режим слияния (Append)
+      (parsedData.meals || []).forEach(newMeal => {
+        let existingMeal = day.meals.find(m => m.meal.toLowerCase() === newMeal.meal.toLowerCase());
+        if (!existingMeal) { 
+          existingMeal = { meal: newMeal.meal, items: [] }; 
+          day.meals.push(existingMeal); 
+        }
+        
+        (newMeal.items || []).forEach(newItem => {
+          const idx = existingMeal.items.findIndex(i => i.name.trim().toLowerCase() === newItem.name.trim().toLowerCase());
+          if (idx >= 0) {
+            existingMeal.items[idx] = newItem; 
+          } else {
+            existingMeal.items.push(newItem); 
+          }
+        });
+      });
+    }
+    
+    AppState.days[targetDate] = day;
+    
+    // Синхронизация с базой продуктов
+    if (!AppState.productsDb) AppState.productsDb = {};
+    day.meals.forEach(m => {
+      m.items.forEach(i => {
+        if (i.name) {
+          AppState.productsDb[i.name] = { cal: i.cal, p: i.p, f: i.f, c: i.c, lastUsed: targetDate };
+        }
+      });
+    });
+
+    saveState();
+    closeImportModal();
+    document.getElementById("jsonInput").value = "";
+    renderDay();
+    alert("✅ Дневник успешно обновлен!");
+  }
+
+  // ================= 6. ЦЕЛЬ НА КОНКРЕТНЫЙ ДЕНЬ =================
+  function openTargetModal() { 
+    document.getElementById("targetCalInput").value = AppState.days[currentDate]?.target_calories || AppState.userProfile.defaultTargetCal; 
+    document.getElementById("targetProInput").value = AppState.days[currentDate]?.target_protein || AppState.userProfile.defaultTargetPro; 
+    document.getElementById("targetModal").classList.add("open"); 
+  }
+  
+  function closeTargetModal() { 
+    document.getElementById("targetModal").classList.remove("open"); 
+  }
+  
+  function saveTargetModal() { 
+    if (!AppState.days[currentDate]) {
+      AppState.days[currentDate] = { date: currentDate, meals: [] };
+    }
+    AppState.days[currentDate].target_calories = Number(document.getElementById("targetCalInput").value); 
+    AppState.days[currentDate].target_protein = Number(document.getElementById("targetProInput").value); 
+    saveState(); 
+    closeTargetModal(); 
+    renderDay(); 
+  }
+
+  // ================= 7. КАЛЕНДАРЬ И ПРАВИЛЬНЫЙ ДЕФИЦИТ ОТ TDEE =================
+  function renderCalendar() {
+    const monthNames = ["Январь","Февраль","Март","Апрель","Май","Июнь","Июль","Август","Сентябрь","Октябрь","Ноябрь","Декабрь"];
+    document.getElementById("calMonthTitle").innerText = `${monthNames[calViewMonth]} ${calViewYear}`;
+    
+    const grid = document.getElementById("calGrid"); 
+    grid.innerHTML = "";
+    
+    const firstDay = (new Date(calViewYear, calViewMonth, 1).getDay() + 6) % 7;
+    const totalDays = new Date(calViewYear, calViewMonth + 1, 0).getDate();
+    
+    for (let i = 0; i < firstDay; i++) {
+      grid.appendChild(Object.assign(document.createElement("div"), {className: "cal-cell empty"}));
+    }
+    
+    for (let day = 1; day <= totalDays; day++) {
+      const dStr = `${calViewYear}-${String(calViewMonth + 1).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
+      const c = document.createElement("div"); 
+      c.className = "cal-cell"; 
+      c.innerText = day;
+      
+      if (AppState.days[dStr] && AppState.days[dStr].meals.length > 0) { 
+        c.classList.add("has-data"); 
+        c.appendChild(Object.assign(document.createElement("div"), {className: "cal-dot"})); 
+      }
+      
+      if (dStr === currentDate) c.classList.add("today");
+      if (selectedCalDates.has(dStr)) c.classList.add("selected");
+      
+      c.onclick = () => { 
+        if (selectedCalDates.has(dStr)) selectedCalDates.delete(dStr);
+        else selectedCalDates.add(dStr); 
+        renderCalendar(); 
+      };
+      
+      grid.appendChild(c);
+    }
+    
+    // ПОДСЧЕТ ДЕФИЦИТА ОТ TDEE
+    let sumCal = 0, sumP = 0, sumF = 0;
+    let sumTdee = 0; 
+    let daysWithMeals = 0;
+    
+    Array.from(selectedCalDates).forEach(dt => {
+      const d = AppState.days[dt];
+      if (d && d.meals && d.meals.length > 0) { 
+        daysWithMeals++; 
+        
+        // Берем норму TDEE
+        sumTdee += AppState.userProfile.tdee;
+        
+        d.meals.forEach(m => {
+          m.items.forEach(i => { 
+            sumCal += Number(i.cal) || 0; 
+            sumP += Number(i.p) || 0; 
+            sumF += Number(i.f) || 0; 
+          });
+        }); 
+      }
+    });
+    
+    const div = daysWithMeals || 1; 
+    const totalDeficit = sumTdee - sumCal; 
+    const avgDeficit = Math.round(totalDeficit / div);
     
     document.getElementById("avgSelectedCount").innerText = `${selectedCalDates.size} дн.`;
-    const elDef = document.getElementById("total-deficit"), elAvg = document.getElementById("avg-deficit"), elInfo = document.getElementById("tdee-info-cal");
     
-    if(days = 0) { elDef.innerText="0 ккал"; elDef.style.color="var(--text-muted)"; elAvg.innerText="Выберите дни"; elInfo.innerText=""; }
-    else if(def > 0) { elDef.innerText=`-${def} ккал (Дефицит)`; elDef.style.color="var(--accent-green)"; elAvg.innerText=`В среднем недоедаете: ${avgDef} ккал/день`; }
-    else { elDef.innerText=`+${Math.abs(def)} ккал (Профицит)`; elDef.style.color="var(--accent-red)"; elAvg.innerText=`В среднем переедаете: ${Math.abs(avgDef)} ккал/день`; }
+    const defEl = document.getElementById("total-deficit");
+    const avgDefEl = document.getElementById("avg-deficit");
     
-    if(days > 0) elInfo.innerText = `Считается от вашей TDEE: ${AppState.userProfile.tdee} ккал/день`;
-    
-    document.getElementById("avg-cal").innerText = Math.round(sumCal/div); document.getElementById("avg-pro").innerText = `${(sumP/div).toFixed(1)} г`; document.getElementById("avg-fat").innerText = `${(sumF/div).toFixed(1)} г`;
+    if (daysWithMeals === 0) { 
+      defEl.innerText = "0 ккал"; 
+      defEl.style.color = "var(--text-muted)"; 
+      avgDefEl.innerText = `Выберите дни с записями`;
+    } else if (totalDeficit > 0) { 
+      defEl.innerText = `-${totalDeficit} ккал (Дефицит)`; 
+      defEl.style.color = "var(--accent-green)"; 
+      avgDefEl.innerText = `В среднем вы недоедаете: ${avgDeficit} ккал / день`;
+    } else { 
+      defEl.innerText = `+${Math.abs(totalDeficit)} ккал (Профицит)`; 
+      defEl.style.color = "var(--accent-red)"; 
+      avgDefEl.innerText = `В среднем вы переедаете: ${Math.abs(avgDeficit)} ккал / день`;
+    }
+
+    document.getElementById("avg-cal").innerText = Math.round(sumCal / div);
+    document.getElementById("avg-pro").innerText = `${(sumP / div).toFixed(1)} г`;
+    document.getElementById("avg-fat").innerText = `${(sumF / div).toFixed(1)} г`;
   }
-  function selC(d) { selectedCalDates.has(d) ? selectedCalDates.delete(d) : selectedCalDates.add(d); renderCalendar(); }
-  function changeCalMonth(d) { calViewMonth+=d; if(calViewMonth<0){calViewMonth=11;calViewYear--;} else if(calViewMonth>11){calViewMonth=0;calViewYear;} renderCalendar(); }
-  function selectCalendarPreset(p) { 
-    selectedCalDates.clear(); let t = new Date(currentDate); 
-    if(p='week') for(let i=0;i<7;i){ let d=new Date(t); d.setDate(d.getDate()-i); selectedCalDates.add(d.toISOString().split("T")[0]); }
-    if(p='all_month') { let td = new Date(calViewYear, calViewMonth+1, 0).getDate(); for(let i=1;i<=td;i){ let s=`${calViewYear}-${String(calViewMonth+1).padStart(2,"0")}-${String(i).padStart(2,"0")}`; if(AppState.days[s]&&AppState.days[s].meals.length) selectedCalDates.add(s); } }
+
+  function changeCalMonth(d) { 
+    calViewMonth += d; 
+    if (calViewMonth < 0) { calViewMonth = 11; calViewYear--; } 
+    else if (calViewMonth > 11) { calViewMonth = 0; calViewYear++; } 
     renderCalendar(); 
   }
-  function clearCalendarSelection() { selectedCalDates.clear(); renderCalendar(); }
 
-  // = 6. БАЗА БЛЮД =
+  function selectCalendarPreset(p) { 
+    selectedCalDates.clear(); 
+    const t = new Date(currentDate); 
+    
+    if (p === 'week') {
+      for (let i = 0; i < 7; i++) {
+        let d = new Date(t); 
+        d.setDate(d.getDate() - i); 
+        selectedCalDates.add(d.toISOString().split("T")[0]);
+      }
+    } else if (p === 'all_month') {
+      const tD = new Date(calViewYear, calViewMonth + 1, 0).getDate(); 
+      for (let i = 1; i <= tD; i++) {
+        let s = `${calViewYear}-${String(calViewMonth+1).padStart(2,"0")}-${String(i).padStart(2,"0")}`; 
+        if (AppState.days[s] && AppState.days[s].meals.length > 0) {
+          selectedCalDates.add(s);
+        }
+      }
+    } 
+    renderCalendar(); 
+  }
+  
+  function clearCalendarSelection() { 
+    selectedCalDates.clear(); 
+    renderCalendar(); 
+  }
+
+  // ================= 8. БАЗА ПРОДУКТОВ =================
   function renderProductDatabase() {
     const q = document.getElementById("productSearch").value.toLowerCase();
     const c = document.getElementById("productsContainer");
-    const ks = Object.keys(AppState.productsDb||{}).filter(x => x.toLowerCase().includes(q)).sort();
-    document.getElementById("productsCount").innerText = `Всего: ${ks.length}`;
-    if (!ks.length) c.innerHTML = `<div class="empty-state">Пусто</div>`;
-    else c.innerHTML = ks.map(n => {
-      const p = AppState.productsDb[n];
-      return `<div class="db-row">
-        <div><div style="font-size:13px;font-weight:700;">${n}</div><div style="font-size:11px;color:var(--text-muted)"><b style="color:var(--accent-orange)">${p.cal} ккал</b> • Б:${p.p} Ж:${p.f} У:${p.c}</div></div>
-        <div style="display:flex;gap:4px;">
-          <button class="db-btn" onclick="addToDiaryFromDb('${n.replace(/'/g,"\\'")}');" title="Добавить в дневник"><i data-lucide="plus" style="width:14px;"></i></button>
-          <button class="db-btn" onclick="navigator.clipboard.writeText('${n.replace(/'/g,"\\'")} - ${p.cal} ккал (Б:${p.p} Ж:${p.f} У:${p.c})')"><i data-lucide="copy" style="width:14px;"></i></button>
-        </div>
-      </div>`;
-    }).join("");
-    lucide.createIcons();
-  }
-  
-  function addToDiaryFromDb(name) {
-    const meal = prompt(`В какой прием пищи добавить "${name}"?\n(Завтрак, Обед, Ужин, Перекус)`, "Перекус");
-    if(!meal) return;
-    const item = AppState.productsDb[name];
-    if(!AppState.days[currentDate]) AppState.days[currentDate] = { date: currentDate, meals: [] };
-    let m = AppState.days[currentDate].meals.find(x => x.meal.toLowerCase() = meal.toLowerCase());
-    if(!m) { m = { meal, items: [] }; AppState.days[currentDate].meals.push(m); }
-    m.items.push({ name, cal: item.cal, p: item.p, f: item.f, c: item.c });
-    saveState(); alert("✅ Добавлено!");
+    const keys = Object.keys(AppState.productsDb || {}).filter(x => x.toLowerCase().includes(q)).sort();
+    
+    document.getElementById("productsCount").innerText = `Всего продуктов: ${keys.length}`;
+    
+    if (!keys.length) {
+      c.innerHTML = `<div class="empty-state">Продукты не найдены</div>`;
+    } else {
+      c.innerHTML = keys.map(n => {
+        const p = AppState.productsDb[n];
+        const copyTxt = `${n.replace(/'/g, "\\'")} - ${p.cal} ккал (Б:${p.p} Ж:${p.f} У:${p.c})`;
+        return `
+          <div class="product-row">
+            <div>
+              <div style="font-size:14px;font-weight:700;color:var(--text-main);">${n}</div>
+              <div style="font-size:12px;color:var(--text-muted);">
+                <b style="color:var(--accent-orange);">${p.cal} ккал</b> • Б:${p.p} Ж:${p.f} У:${p.c}
+              </div>
+            </div>
+            <div style="display:flex; gap:6px;">
+              <button class="copy-chip" onclick="addToDiaryFromDb('${n.replace(/'/g, "\\'")}')" title="Добавить на сегодня">
+                <i data-lucide="plus" style="width:14px;height:14px;"></i>
+              </button>
+              <button class="copy-chip" onclick="navigator.clipboard.writeText('${copyTxt}'); alert('Скопировано!')" title="Скопировать текст">
+                <i data-lucide="copy" style="width:14px;height:14px;"></i>
+              </button>
+            </div>
+          </div>`;
+      }).join("");
+      lucide.createIcons();
+    }
   }
 
-  // = 7. ГРАФИКИ (ЛИНИЯ ЦЕЛИ) =
+  function addToDiaryFromDb(name) {
+    const meal = prompt(`В какой прием пищи добавить блюдо "${name}"?\n(Например: Завтрак, Обед, Ужин, Перекус)`, "Перекус");
+    if (!meal) return;
+    
+    const item = AppState.productsDb[name];
+    
+    if (!AppState.days[currentDate]) {
+      AppState.days[currentDate] = { date: currentDate, target_calories: AppState.userProfile.defaultTargetCal, meals: [] };
+    }
+    
+    let mObj = AppState.days[currentDate].meals.find(x => x.meal.toLowerCase() === meal.toLowerCase());
+    if (!mObj) { 
+      mObj = { meal: meal, items: [] }; 
+      AppState.days[currentDate].meals.push(mObj); 
+    }
+    
+    mObj.items.push({ name: name, cal: item.cal, p: item.p, f: item.f, c: item.c });
+    saveState();
+    alert("✅ Успешно добавлено на сегодня!");
+  }
+
+  // ================= 9. ГРАФИКИ (ЛИНИЯ ЦЕЛИ) =================
   const targetLinePlugin = {
     id: 'targetLine',
     beforeDraw: chart => {
       const target = AppState.userProfile.defaultTargetCal;
       const yAxis = chart.scales.y;
-      if(target > yAxis.max || target < yAxis.min) return; // Если цель вне графика
+      if(target > yAxis.max || target < yAxis.min) return; 
+      
       const y = yAxis.getPixelForValue(target);
       const ctx = chart.ctx;
-      ctx.save(); ctx.beginPath();
-      ctx.moveTo(chart.chartArea.left, y); ctx.lineTo(chart.chartArea.right, y);
-      ctx.lineWidth = 2; ctx.strokeStyle = 'rgba(239, 68, 68, 0.8)'; // Красная жирная линия
-      ctx.stroke(); ctx.restore();
+      ctx.save(); 
+      ctx.beginPath();
+      ctx.moveTo(chart.chartArea.left, y); 
+      ctx.lineTo(chart.chartArea.right, y);
+      ctx.lineWidth = 2; 
+      ctx.strokeStyle = 'rgba(239, 68, 68, 0.8)'; // Красная жирная линия
+      ctx.stroke(); 
+      ctx.restore();
     }
   };
 
   function renderStats() {
-    const dates = Object.keys(AppState.days||{}).sort().reverse();
+    const dates = Object.keys(AppState.days || {}).sort().reverse();
+    
     document.getElementById("historyContainer").innerHTML = dates.map(dt => {
-      let cal=0; AppState.days[dt].meals.forEach(m=>m.items.forEach(i=>cal+=i.cal||0));
-      return `<div class="db-row" style="cursor:pointer;" onclick="currentDate='${dt}'; switchTab('diary');"><span style="font-weight:700;">📅 ${dt}</span><span style="color:var(--accent-orange);font-weight:700;">${Math.round(cal)} ккал</span></div>`;
+      let cal = 0; 
+      AppState.days[dt].meals.forEach(m => m.items.forEach(i => cal += Number(i.cal) || 0));
+      return `
+        <div class="product-row" style="cursor:pointer;" onclick="currentDate='${dt}'; switchTab('diary'); renderDay();">
+          <span style="font-weight:700;">📅 ${dt.split('-').reverse().join('.')}</span>
+          <span style="color:var(--accent-orange); font-weight:700;">${Math.round(cal)} ккал</span>
+        </div>`;
     }).join("");
     
-    const ctx = document.getElementById("weekBarChart").getContext("2d");
-    const cDts = dates.slice(0, 7).reverse();
-    const cVals = cDts.map(dt => { let s=0; AppState.days[dt].meals.forEach(m=>m.items.forEach(i=>s+=i.cal||0)); return s; });
-    if(weekChart) weekChart.destroy();
-    weekChart = new Chart(ctx, { 
-      type: "bar", data: { labels: cDts.map(d=>d.slice(5)), datasets: [{ data: cVals, backgroundColor: "#3B82F6", borderRadius: 4 }] }, 
-      options: { plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true, suggestedMax: AppState.userProfile.defaultTargetCal + 300 } } },
+    const ctxWeek = document.getElementById("weekBarChart").getContext("2d");
+    const chartDates = dates.slice(0, 7).reverse();
+    const chartCals = chartDates.map(dt => { 
+      let sum = 0; 
+      AppState.days[dt].meals.forEach(m => m.items.forEach(i => sum += Number(i.cal) || 0)); 
+      return sum; 
+    });
+    
+    const target = AppState.userProfile.defaultTargetCal;
+    
+    if (weekChart) weekChart.destroy();
+    
+    weekChart = new Chart(ctxWeek, { 
+      type: "bar", 
+      data: { 
+        labels: chartDates.map(d => d.slice(5).split('-').reverse().join('.')), 
+        datasets: [{ data: chartCals, backgroundColor: "#3B82F6", borderRadius: 4 }] 
+      }, 
+      options: { 
+        plugins: { legend: { display: false } }, 
+        scales: { 
+          x: { grid: { display: false } },
+          y: { beginAtZero: true, suggestedMax: target + (target * 0.2) } // Добавляем запас сверху для линии
+        } 
+      },
       plugins: [targetLinePlugin]
     });
   }
 
-  // = 8. ПРОФИЛЬ =
-  function setNormMode(m) { 
-    AppState.userProfile.mode = m; 
-    document.getElementById("norm-mode-auto").classList.toggle("active", m="auto"); document.getElementById("norm-mode-manual").classList.toggle("active", m="manual"); 
-    document.getElementById("norm-auto-block").style.display = m="auto"?"block":"none"; document.getElementById("norm-manual-block").style.display = m="manual"?"block":"none"; saveState(); 
-  }
-  function setCalcGender(g) { calcGender=g; document.getElementById("calc-gender-m").classList.toggle("active",g="m"); document.getElementById("calc-gender-f").classList.toggle("active",g="f"); }
-  
+  // ================= 10. ПРОФИЛЬ И НОРМА =================
   function saveManualNorm() {
     const tdee = Number(document.getElementById("manual-tdee").value) || AppState.userProfile.tdee;
-    const tCal = Number(document.getElementById("manual-cal-target").value) || AppState.userProfile.defaultTargetCal;
-    const tPro = Number(document.getElementById("manual-pro-target").value) || AppState.userProfile.defaultTargetPro;
+    const targetCal = Number(document.getElementById("manual-cal-target").value) || AppState.userProfile.defaultTargetCal;
+    const targetPro = Number(document.getElementById("manual-pro-target").value) || AppState.userProfile.defaultTargetPro;
+    
     AppState.userProfile.mode = 'manual';
-    AppState.userProfile.tdee = tdee; AppState.userProfile.defaultTargetCal = tCal; AppState.userProfile.defaultTargetPro = tPro;
-    if(AppState.days[currentDate]) AppState.days[currentDate].target_calories = tCal;
-    saveState(); updateProfileUI(); renderDay(); alert("✅ Глобальные настройки нормы сохранены!");
-  }
-
-  function calculateAndSaveNorm() {
-    // Если авто
-    const w = Number(document.getElementById("calc-weight").value), h = Number(document.getElementById("calc-height").value), a = Number(document.getElementById("calc-age").value), act = Number(document.getElementById("calc-activity").value), goal = Number(document.getElementById("calc-goal").value);
-    let bmr = (10*w) + (6.25*h) - (5*a); bmr = calcGender="m" ? bmr+5 : bmr-161;
-    let tdee = Math.round(bmr * act); let tCal = Math.round(tdee * (1+(goal/100))); let tPro = Math.round(w * 1.8);
-    AppState.userProfile = { mode: 'auto', gender: calcGender, age: a, weight: w, height: h, activity: act, goal: goal, tdee: tdee, defaultTargetCal: tCal, defaultTargetPro: tPro };
-    if(AppState.days[currentDate]) AppState.days[currentDate].target_calories = tCal;
-    saveState(); updateProfileUI(); renderDay(); alert(`✅ Формула рассчитана!\nТратите: ${tdee} ккал\nЦель: ${tCal} ккал`);
+    AppState.userProfile.tdee = tdee;
+    AppState.userProfile.defaultTargetCal = targetCal;
+    AppState.userProfile.defaultTargetPro = targetPro;
+    
+    // Обновляем цель для текущего дня
+    if (AppState.days[currentDate]) {
+      AppState.days[currentDate].target_calories = targetCal;
+    }
+    
+    saveState(); 
+    updateProfileUI(); 
+    renderDay(); 
+    alert("✅ Глобальные настройки нормы сохранены!");
   }
 
   function updateProfileUI() {
     const p = AppState.userProfile;
-    document.getElementById("prof-tdee-val").innerText = `${p.tdee} ккал`; document.getElementById("prof-target-cal").innerText = `${p.defaultTargetCal} ккал`; document.getElementById("prof-target-pro").innerText = `${p.defaultTargetPro} г`;
-    setNormMode(p.mode);
-    document.getElementById("manual-tdee").value = p.tdee; document.getElementById("manual-cal-target").value = p.defaultTargetCal; document.getElementById("manual-pro-target").value = p.defaultTargetPro;
-    document.getElementById("calc-age").value = p.age || 25; document.getElementById("calc-weight").value = p.weight || 75; document.getElementById("calc-height").value = p.height || 178; document.getElementById("calc-activity").value = p.activity || 1.375; document.getElementById("calc-goal").value = p.goal || -15; setCalcGender(p.gender || "m");
+    
+    document.getElementById("prof-tdee-val").innerText = `${p.tdee} ккал`;
+    document.getElementById("prof-target-cal").innerText = `${p.defaultTargetCal} ккал`;
+    document.getElementById("prof-target-pro").innerText = `${p.defaultTargetPro} г`;
+    
+    document.getElementById("manual-tdee").value = p.tdee;
+    document.getElementById("manual-cal-target").value = p.defaultTargetCal;
+    document.getElementById("manual-pro-target").value = p.defaultTargetPro;
+    
+    if (AppState.settings && AppState.settings.backupTime) {
+      document.getElementById("backup-time-input").value = AppState.settings.backupTime;
+    }
   }
 
-  // = 9. ЭКСПОРТ (ТЕКСТ, JSON, EXCEL) =
+  // ================= 11. ЭКСПОРТ (ТЕКСТ, JSON, EXCEL) =================
   function exportText() {
-    let txt = "= ДНЕВНИК КБЖУ =\n\n";
+    let txt = "=== ДНЕВНИК КБЖУ ===\n\n";
+    
     Object.keys(AppState.days).sort().reverse().forEach(dt => {
-      let c=0, p=0, f=0, u=0; AppState.days[dt].meals.forEach(m=>m.items.forEach(i=>{c+=i.cal||0; p+=i.p||0; f+=i.f||0; u+=i.c||0;}));
-      txt += `📅 ${dt} | Съедено: ${Math.round(c)} ккал (Б:${Math.round(p)} Ж:${Math.round(f)} У:${Math.round(u)})\n`;
-      AppState.days[dt].meals.forEach(m => { txt += `  🍽 ${m.meal}:\n`; m.items.forEach(i => txt += `    - ${i.name} - ${i.cal} ккал (Б:${i.p} Ж:${i.f} У:${i.c})\n`); }); txt += "\n";
+      let cal = 0, p = 0, f = 0, c = 0; 
+      AppState.days[dt].meals.forEach(m => m.items.forEach(i => {
+        cal += i.cal || 0; p += i.p || 0; f += i.f || 0; c += i.c || 0;
+      }));
+      
+      txt += `📅 ${dt} | Съедено: ${Math.round(cal)} ккал (Б:${Math.round(p)} Ж:${Math.round(f)} У:${Math.round(c)})\n`;
+      
+      AppState.days[dt].meals.forEach(m => { 
+        txt += `  🍽 ${m.meal}:\n`; 
+        m.items.forEach(i => {
+          txt += `    - ${i.name} - ${i.cal} ккал (Б:${i.p} Ж:${i.f} У:${i.c})\n`; 
+        });
+      }); 
+      txt += "\n";
     });
-    txt += "= БАЗА БЛЮД =\n";
-    Object.keys(AppState.productsDb).sort().forEach(k => { txt += `📦 ${k} — ${AppState.productsDb[k].cal} ккал (Б:${AppState.productsDb[k].p} Ж:${AppState.productsDb[k].f} У:${AppState.productsDb[k].c})\n`; });
-    document.getElementById("textExpArea").value = txt; document.getElementById("textExportModal").classList.add("open");
+    
+    txt += "=== БАЗА БЛЮД ===\n";
+    Object.keys(AppState.productsDb).sort().forEach(k => { 
+      const item = AppState.productsDb[k];
+      txt += `📦 ${k} — ${item.cal} ккал (Б:${item.p} Ж:${item.f} У:${item.c})\n`; 
+    });
+    
+    document.getElementById("textExpArea").value = txt; 
+    document.getElementById("textExportModal").classList.add("open");
   }
-  function closeTextExportModal() { document.getElementById("textExportModal").classList.remove("open"); }
-  function copyTextExport() { navigator.clipboard.writeText(document.getElementById("textExpArea").value); alert("✅ Весь текст скопирован!"); }
 
-  function openTargetModal() { document.getElementById("targetCalInput").value=AppState.days[currentDate]?.target_calories||AppState.userProfile.defaultTargetCal; document.getElementById("targetProInput").value=AppState.days[currentDate]?.target_protein||AppState.userProfile.defaultTargetPro; document.getElementById("targetModal").classList.add("open"); }
-  function closeTargetModal() { document.getElementById("targetModal").classList.remove("open"); }
-  function saveTargetModal() { if(!AppState.days[currentDate]) AppState.days[currentDate]={date:currentDate, meals:[]}; AppState.days[currentDate].target_calories=Number(document.getElementById("targetCalInput").value); AppState.days[currentDate].target_protein=Number(document.getElementById("targetProInput").value); saveState(); closeTargetModal(); renderDay(); }
+  function closeTextExportModal() { 
+    document.getElementById("textExportModal").classList.remove("open"); 
+  }
+  
+  function copyTextExport() { 
+    navigator.clipboard.writeText(document.getElementById("textExpArea").value); 
+    alert("✅ Весь текст успешно скопирован в буфер обмена!"); 
+  }
 
-  function exportFullJsonBackup() { const a = document.createElement("a"); a.href = URL.createObjectURL(new Blob([JSON.stringify(AppState, null, 2)], { type: "application/json" })); a.download = `kbju_backup_${currentDate}.json`; a.click(); }
-  function triggerJsonImport() { document.getElementById("jsonFileInput").click(); }
-  function handleJsonFileImport(e) { const r = new FileReader(); r.onload = ev => { try { AppState = JSON.parse(ev.target.result); saveState(); location.reload(); } catch(err) { alert("Ошибка JSON"); } }; r.readAsText(e.target.files[0]); }
-  function exportFullExcel() { const wb = XLSX.utils.book_new(), lR=[["Дата","Прием","Блюдо","Ккал","Б","Ж","У"]]; Object.keys(AppState.days||{}).forEach(dt => AppState.days[dt].meals.forEach(m => m.items.forEach(i => lR.push([dt,m.meal,i.name,i.cal,i.p,i.f,i.c])))); XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(lR), "Дневник"); XLSX.writeFile(wb, `kbju_excel_${currentDate}.xlsx`); }
-  function triggerExcelImport() { document.getElementById("excelFileInput").click(); }
-  function handleExcelFileImport(e) { const r = new FileReader(); r.onload = ev => { try { XLSX.utils.sheet_to_json(XLSX.read(new Uint8Array(ev.target.result), {type:"array"}).Sheets["Дневник"]).forEach(x => { const dt=x["Дата"], ml=x["Прием"], nm=x["Блюдо"]; if(dt&&nm) { if(!AppState.days[dt]) AppState.days[dt]={date:dt,meals:[]}; let m=AppState.days[dt].meals.find(y=>y.meal=ml); if(!m){m={meal:ml,items:[]};AppState.days[dt].meals.push(m);} m.items.push({name:nm,cal:Number(x["Ккал"])||0,p:Number(x["Б"])||0,f:Number(x["Ж"])||0,c:Number(x["У"])||0}); }}); saveState(); location.reload(); } catch(err){alert("Ошибка Excel");}}; r.readAsArrayBuffer(e.target.files[0]); e.target.value = ""; }
+  // Бэкапы в файлы
+  function exportFullJsonBackup() {
+    const blob = new Blob([JSON.stringify(AppState, null, 2)], { type: "application/json" });
+    const a = document.createElement("a"); 
+    a.href = URL.createObjectURL(blob); 
+    a.download = `kbju_backup_${currentDate}.json`; 
+    a.click();
+  }
+  
+  function triggerJsonImport() { 
+    document.getElementById("jsonFileInput").click(); 
+  }
+  
+  function handleJsonFileImport(event) {
+    const reader = new FileReader();
+    reader.onload = ev => { 
+      try { 
+        const importedData = JSON.parse(ev.target.result);
+        if (importedData.days) {
+          AppState = importedData; 
+          saveState(); 
+          alert("✅ Данные успешно восстановлены!"); 
+          location.reload(); 
+        } else {
+          throw new Error("Неверный формат");
+        }
+      } catch(err) { 
+        alert("Ошибка файла. Убедитесь, что это файл бэкапа КБЖУ."); 
+      } 
+    };
+    reader.readAsText(event.target.files[0]);
+  }
+  
+  function exportFullExcel() {
+    const wb = XLSX.utils.book_new();
+    const lR = [["Дата","Прием","Блюдо","Ккал","Б","Ж","У"]];
+    
+    Object.keys(AppState.days || {}).forEach(dt => {
+      AppState.days[dt].meals.forEach(m => {
+        m.items.forEach(i => {
+          lR.push([dt, m.meal, i.name, i.cal, i.p, i.f, i.c]);
+        });
+      });
+    });
+    XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(lR), "Дневник");
+    
+    XLSX.writeFile(wb, `kbju_excel_${currentDate}.xlsx`);
+  }
+  
+  function triggerExcelImport() { 
+    document.getElementById("excelFileInput").click(); 
+  }
+  
+  function handleExcelFileImport(event) {
+    const file = event.target.files[0];
+    if (!file) return;
+    
+    const reader = new FileReader();
+    reader.onload = ev => {
+      try {
+        const wb = XLSX.read(new Uint8Array(ev.target.result), {type: "array"});
+        if (wb.Sheets["Дневник"]) {
+          const rows = XLSX.utils.sheet_to_json(wb.Sheets["Дневник"]);
+          rows.forEach(r => {
+            const dt = r["Дата"], ml = r["Прием"], nm = r["Блюдо"];
+            if (dt && nm) {
+              if (!AppState.days[dt]) {
+                AppState.days[dt] = { date: dt, target_calories: AppState.userProfile.defaultTargetCal, meals: [] };
+              }
+              let m = AppState.days[dt].meals.find(y => y.meal === ml);
+              if (!m) { 
+                m = { meal: ml, items: [] }; 
+                AppState.days[dt].meals.push(m); 
+              }
+              m.items.push({ 
+                name: nm, cal: Number(r["Ккал"]) || 0, p: Number(r["Б"]) || 0, 
+                f: Number(r["Ж"]) || 0, c: Number(r["У"]) || 0 
+              });
+            }
+          });
+          saveState(); 
+          alert("✅ Данные из Excel загружены!");
+          location.reload();
+        }
+      } catch(err) {
+        alert("Ошибка импорта Excel.");
+      }
+    };
+    reader.readAsArrayBuffer(file);
+    event.target.value = "";
+  }
 
-  // ЗАПУСК
-  window.addEventListener("DOMContentLoaded", () => { applyTheme(); lucide.createIcons(); renderDay(); updateProfileUI(); });
+  // ================= 12. ЗАПУСК ПРИЛОЖЕНИЯ =================
+  window.addEventListener("DOMContentLoaded", () => { 
+    applyTheme(); 
+    lucide.createIcons(); 
+    renderDay(); 
+    updateProfileUI(); 
+  });
 </script>
-
 </body>
 </html>
