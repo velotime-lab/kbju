@@ -177,8 +177,9 @@
     .tab-content.active { display: block; }
   </style>
 </head>
-<body>
+  <body>
 
+<!-- Скрытые инпуты для загрузки файлов -->
 <input type="file" id="jsonFileInput" accept=".json" style="display:none;" onchange="handleJsonFileImport(event)">
 <input type="file" id="excelFileInput" accept=".xlsx, .xls" style="display:none;" onchange="handleExcelFileImport(event)">
 
@@ -304,7 +305,7 @@
 
     <!-- Бэкапы -->
     <div class="backup-box">
-      <h4><i data-lucide="shield-check" style="width:18px;height:18px;color:var(--accent-blue);"></i> Бэкап в памяти телефона (JSON)</h4>
+      <h4><i data-lucide="shield-check" style="width:18px;height:18px;color:var(--accent-blue);"></i> Бэкап в памяти (JSON)</h4>
       <p>Выгружает 100% данных (идеально для стабильности).</p>
       <div class="backup-btn-group">
         <button class="btn-action-outline" onclick="exportFullJsonBackup()"><i data-lucide="download" style="width:14px;height:14px;"></i> Скачать JSON</button>
@@ -314,12 +315,492 @@
     
     <div class="backup-box">
       <h4><i data-lucide="file-spreadsheet" style="width:18px;height:18px;color:var(--accent-green);"></i> Экспорт / Импорт Excel</h4>
-      <div class="backup-btn-group">Извините за недоразумение! Как искусственный интеллект, я работаю только в текстовом формате и не имею технической возможности прикреплять или отправлять файлы напрямую. 
+      <div class="backup-btn-group">
+        <button class="btn-action-outline" onclick="exportFullExcel()"><i data-lucide="file-down" style="width:14px;height:14px;"></i> Скачать XLSX</button>
+        <button class="btn-action-outline" onclick="triggerExcelImport()"><i data-lucide="file-up" style="width:14px;height:14px;"></i> Загрузить XLSX</button>
+      </div>
+    </div>
+    
+    <!-- Ручная и авто норма -->
+    <div class="card">
+      <h3 style="font-size: 15px; font-weight: 800; margin-bottom: 12px;">Настройка нормы (Глобально)</h3>
+      
+      <label style="font-size:12px; font-weight:700; color:var(--text-muted); margin-bottom:4px; display:block;">Режим расчета:</label>
+      <div class="seg-control">
+        <button class="seg-btn active" id="norm-mode-auto" onclick="setNormMode('auto')">Авто (Формула)</button>
+        <button class="seg-btn" id="norm-mode-manual" onclick="setNormMode('manual')">Вручную</button>
+      </div>
 
-**Как я могу помочь вам прямо сейчас:**
+      <!-- Авто -->
+      <div id="norm-auto-block">
+        <div class="input-group"><label>Пол</label><div class="seg-control"><button class="seg-btn active" id="calc-gender-m" onclick="setCalcGender('m')">Муж</button><button class="seg-btn" id="calc-gender-f" onclick="setCalcGender('f')">Жен</button></div></div>
+        <div style="display:grid; grid-template-columns: 1fr 1fr 1fr; gap:8px;">
+          <div class="input-group"><label>Возраст</label><input type="number" id="calc-age" class="form-input" value="25"></div>
+          <div class="input-group"><label>Вес</label><input type="number" id="calc-weight" class="form-input" value="75"></div>
+          <div class="input-group"><label>Рост</label><input type="number" id="calc-height" class="form-input" value="178"></div>
+        </div>
+        <div class="input-group">
+          <label>Активность</label>
+          <select id="calc-activity" class="form-select">
+            <option value="1.2">Сидячая (x1.2)</option>
+            <option value="1.375" selected>Легкая (x1.375)</option>
+            <option value="1.55">Средняя (x1.55)</option>
+            <option value="1.725">Высокая (x1.725)</option>
+          </select>
+        </div>
+        <div class="input-group">
+          <label>Цель</label>
+          <select id="calc-goal" class="form-select">
+            <option value="-15">Похудение (-15%)</option>
+            <option value="0" selected>Поддержание</option>
+            <option value="10">Набор (+10%)</option>
+          </select>
+        </div>
+      </div>
 
-*   **Текст и код:** Если вам нужен был текстовый документ, шаблон письма, эссе или программный код, я могу написать его прямо здесь, чтобы вы могли скопировать результат.
-*   **Таблицы и данные:** Я могу собрать и структурировать информацию в виде удобной таблицы, которую легко перенести в Excel или Word.
-*   **Анализ данных:** Если у вас есть текст, который нужно проверить, перевести или сократить, вы можете вставить его в чат.
+      <!-- Вручную -->
+      <div id="norm-manual-block" style="display:none;">
+        <div class="input-group"><label>Глобальная цель ККАЛ</label><input type="number" id="manual-cal-global" class="form-input"></div>
+        <div class="input-group"><label>Глобальная цель БЕЛОК (г)</label><input type="number" id="manual-pro-global" class="form-input"></div>
+      </div>
 
-Просто опишите, какое именно содержимое файла вы ожидали получить, и я сгенерирую нужный текст прямо в нашем диалоге.
+      <button class="btn-primary" onclick="calculateAndSaveNorm()">Сохранить глобальную цель</button>
+    </div>
+  </div>
+</div>
+
+<!-- Нижнее меню -->
+<div class="nav-bar">
+  <div class="nav-tab active" onclick="switchTab('diary')"><i data-lucide="book-open" style="width:20px;height:20px;"></i><span>Дневник</span></div>
+  <div class="nav-tab" onclick="switchTab('calendar')"><i data-lucide="calendar" style="width:20px;height:20px;"></i><span>Календарь</span></div>
+  <div class="nav-tab" onclick="switchTab('products')"><i data-lucide="database" style="width:20px;height:20px;"></i><span>Продукты</span></div>
+  <div class="nav-tab" onclick="switchTab('stats')"><i data-lucide="bar-chart-2" style="width:20px;height:20px;"></i><span>Аналитика</span></div>
+  <div class="nav-tab" onclick="switchTab('profile')"><i data-lucide="user" style="width:20px;height:20px;"></i><span>Профиль</span></div>
+</div>
+
+<!-- Модалки -->
+<div class="modal-overlay" id="importModal">
+  <div class="modal-sheet">
+    <h3>📥 Вставка из чата Джемини</h3>
+    <div class="seg-control" style="margin-top:4px;">
+      <button class="seg-btn active" id="mode-overwrite" onclick="setImportMode('overwrite')">Заменить день</button>
+      <button class="seg-btn" id="mode-append" onclick="setImportMode('append')">Добавить прием</button>
+    </div>
+    <textarea class="modal-textarea" id="jsonInput" placeholder='Вставьте сюда JSON...'></textarea>
+    <div class="btn-row">
+      <button class="btn-secondary" onclick="closeImportModal()">Отмена</button>
+      <button class="btn-primary" onclick="applyJsonImport()">Применить</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="targetModal">
+  <div class="modal-sheet">
+    <h3>🎯 Цель на этот день</h3>
+    <div class="input-group"><label>Калории (ккал)</label><input type="number" id="targetCalInput" class="form-input"></div>
+    <div class="input-group"><label>Белок (г)</label><input type="number" id="targetProInput" class="form-input"></div>
+    <div class="btn-row">
+      <button class="btn-secondary" onclick="closeTargetModal()">Отмена</button>
+      <button class="btn-primary" onclick="saveTargetModal()">Сохранить</button>
+    </div>
+  </div>
+</div>
+<script>
+  // === СТАБИЛЬНОЕ ЛОКАЛЬНОЕ ХРАНИЛИЩЕ ===
+  const DEFAULT_STATE = { 
+    theme: "light",
+    currentDate: new Date().toISOString().split("T")[0], 
+    userProfile: { mode: "auto", gender: "m", age: 25, weight: 75, height: 178, activity: 1.375, goal: 0, defaultTargetCal: 1900, defaultTargetPro: 130 }, 
+    settings: { backupTime: "", lastNotified: "" },
+    days: {}, 
+    productsDb: {} 
+  };
+  
+  let AppState;
+  try { AppState = JSON.parse(localStorage.getItem("kbju_tracker_stable")) || DEFAULT_STATE; } 
+  catch (e) { AppState = DEFAULT_STATE; }
+  
+  let currentDate = AppState.currentDate || new Date().toISOString().split("T")[0];
+  let importMode = "overwrite";
+  let calcGender = AppState.userProfile?.gender || "m";
+  let normMode = AppState.userProfile?.mode || "auto";
+  let collapsedMeals = new Set();
+  
+  let doughnutChart = null, weekChart = null;
+  let calViewYear = new Date().getFullYear(), calViewMonth = new Date().getMonth();
+  let selectedCalDates = new Set();
+
+  function saveState() {
+    try { localStorage.setItem("kbju_tracker_stable", JSON.stringify(AppState)); } 
+    catch (e) { alert("⚠️ Ошибка памяти телефона! Память переполнена."); }
+  }
+
+  // ТЕМА
+  function applyTheme() {
+    document.documentElement.setAttribute("data-theme", AppState.theme || "light");
+    const icon = document.getElementById("theme-icon");
+    if(icon) {
+        icon.setAttribute("data-lucide", AppState.theme === "dark" ? "sun" : "moon");
+        lucide.createIcons();
+    }
+  }
+  function toggleTheme() {
+    AppState.theme = AppState.theme === "dark" ? "light" : "dark";
+    applyTheme(); saveState();
+  }
+
+  // УВЕДОМЛЕНИЯ
+  function saveNotificationSettings() {
+    const time = document.getElementById("backup-time-input").value;
+    if(time) {
+        Notification.requestPermission().then(perm => {
+            if(perm === "granted") {
+                if(!AppState.settings) AppState.settings = {};
+                AppState.settings.backupTime = time;
+                saveState();
+                alert(`🔔 Напоминание установлено на ${time}`);
+            } else alert("Разрешите уведомления в настройках браузера/телефона.");
+        });
+    }
+  }
+  
+  function checkNotifications() {
+    if(!AppState.settings?.backupTime) return;
+    const now = new Date();
+    const hhmm = now.getHours().toString().padStart(2,'0') + ':' + now.getMinutes().toString().padStart(2,'0');
+    const todayStr = now.toISOString().split('T')[0];
+    
+    if(hhmm === AppState.settings.backupTime && AppState.settings.lastNotified !== todayStr) {
+      if(Notification.permission === "granted") {
+        new Notification("Время бэкапа! 💾", { body: "Зайдите в трекер и выгрузите JSON, чтобы не потерять данные!" });
+        AppState.settings.lastNotified = todayStr;
+        saveState();
+      }
+    }
+  }
+  setInterval(checkNotifications, 60000);
+
+  function syncProductsDatabase(dayData) {
+    if (!AppState.productsDb) AppState.productsDb = {};
+    if (!dayData || !dayData.meals) return;
+    dayData.meals.forEach(m => {
+      (m.items || []).forEach(item => {
+        if (item.name) AppState.productsDb[item.name] = { cal: Number(item.cal)||0, p: Number(item.p)||0, f: Number(item.f)||0, c: Number(item.c)||0, lastUsed: dayData.date || currentDate };
+      });
+    });
+    saveState();
+  }
+
+  function getMotivationalText(consumed, target) {
+    if (consumed === 0) return "☀️ Начинаем день с чистого листа! Что вкусненького съедим?";
+    const diff = target - consumed;
+    if (diff > target * 0.5) return "🔥 Отличный темп! Места для вкусняшек ещё полно.";
+    if (diff > 0) return "😎 Идём по плану! Осталось совсем чуть-чуть до нормы.";
+    if (diff === 0) return "🎯 Идеальное попадание в яблочко! Ты просто маг!";
+    return "🙈 Ой, вышли за края! Ничего страшного, завтра будет новый день!";
+  }
+
+  function toggleMealCollapse(mealName) {
+    if (collapsedMeals.has(mealName)) collapsedMeals.delete(mealName);
+    else collapsedMeals.add(mealName);
+    renderDay();
+  }
+
+  function deleteFoodItem(mealName, itemIdx) {
+    if(confirm("Удалить это блюдо?")) {
+        let meal = AppState.days[currentDate].meals.find(m => m.meal === mealName);
+        if(meal) {
+            meal.items.splice(itemIdx, 1);
+            if(meal.items.length === 0) AppState.days[currentDate].meals = AppState.days[currentDate].meals.filter(m => m.meal !== mealName);
+            saveState(); renderDay();
+        }
+    }
+  }
+
+  function deleteCurrentDay() {
+    if(confirm("🚨 Точно удалить ВЕСЬ день? Это действие нельзя отменить!")) {
+        delete AppState.days[currentDate];
+        saveState(); renderDay();
+    }
+  }
+
+  function renderDay() {
+    const dayData = AppState.days[currentDate] || { date: currentDate, target_calories: AppState.userProfile?.defaultTargetCal || 1900, meals: [] };
+    const d = new Date(currentDate);
+    const months = ["янв","фев","мар","апр","мая","июн","июл","авг","сен","окт","ноя","дек"];
+    document.getElementById("currentDateLabel").innerText = `${d.getDate()} ${months[d.getMonth()]}`;
+
+    let totalCal = 0, totalP = 0, totalF = 0, totalC = 0;
+    (dayData.meals || []).forEach(m => (m.items || []).forEach(i => { totalCal+=Number(i.cal)||0; totalP+=Number(i.p)||0; totalF+=Number(i.f)||0; totalC+=Number(i.c)||0; }));
+
+    const targetCal = dayData.target_calories || AppState.userProfile?.defaultTargetCal || 1900;
+    document.getElementById("val-consumed").innerText = Math.round(totalCal);
+    document.getElementById("val-target").innerText = targetCal;
+    document.getElementById("val-remaining").innerText = Math.round(Math.max(0, targetCal - totalCal));
+    document.getElementById("cal-progress").style.width = `${Math.min(100, Math.round((totalCal / targetCal) * 100))}%`;
+    document.getElementById("motivational-text").innerText = getMotivationalText(totalCal, targetCal);
+
+    document.getElementById("val-protein").innerText = `${totalP.toFixed(1)} г`;
+    document.getElementById("val-fat").innerText = `${totalF.toFixed(1)} г`;
+    document.getElementById("val-carbs").innerText = `${totalC.toFixed(1)} г`;
+
+    const calP = totalP*4, calF = totalF*9, calC = totalC*4;
+    const sum = calP + calF + calC || 1;
+    document.getElementById("pct-protein").innerText = `(${Math.round((calP/sum)*100)}%)`;
+    document.getElementById("pct-fat").innerText = `(${Math.round((calF/sum)*100)}%)`;
+    document.getElementById("pct-carbs").innerText = `(${Math.round((calC/sum)*100)}%)`;
+    document.getElementById("macroTotalKcal").innerHTML = `${Math.round(totalCal)}<br><span style="font-size:9px;">ккал</span>`;
+
+    renderDoughnut(calP, calF, calC);
+
+    const container = document.getElementById("mealsContainer");
+    if (!dayData.meals || dayData.meals.length === 0) {
+      container.innerHTML = `<div class="empty-state">Нет записей. Нажмите "Добавить из чата"</div>`;
+    } else {
+      container.innerHTML = dayData.meals.map(m => {
+        let mealCal = 0;
+        const isCollapsed = collapsedMeals.has(m.meal);
+        const itemsHtml = (m.items || []).map((i, idx) => {
+          mealCal += Number(i.cal)||0;
+          return `<div class="food-item"><div><div class="food-name">${i.name}</div><div class="food-macros">Б: ${i.p}г • Ж: ${i.f}г • У: ${i.c}г</div></div><div class="food-cal-block"><div class="food-cal">${i.cal} <span style="font-size:11px;">ккал</span></div><button class="del-item-btn" onclick="deleteFoodItem('${m.meal}', ${idx})"><i data-lucide="trash-2" style="width:14px;height:14px;"></i></button></div></div>`;
+        }).join("");
+        return `<div class="meal-group ${isCollapsed ? 'collapsed' : ''}"><div class="meal-group-header" onclick="toggleMealCollapse('${m.meal}')"><span class="meal-group-title"><i data-lucide="chevron-down" class="chevron-icon" style="width:16px;height:16px;"></i> ${m.meal}</span><span class="meal-group-cals">${Math.round(mealCal)} ккал</span></div><div class="meal-items-container">${itemsHtml}</div></div>`;
+      }).join("");
+    }
+    lucide.createIcons();
+  }
+
+  function renderDoughnut(pCal, fCal, cCal) {
+    const ctx = document.getElementById("macroDoughnut").getContext("2d");
+    const data = (pCal===0&&fCal===0&&cCal===0) ? [1,1,1] : [pCal, fCal, cCal];
+    const colors = (pCal===0&&fCal===0&&cCal===0) ? ["#E2E8F0","#E2E8F0","#E2E8F0"] : ["#3B82F6", "#F59E0B", "#10B981"];
+    if (doughnutChart) { doughnutChart.data.datasets[0].data = data; doughnutChart.data.datasets[0].backgroundColor = colors; doughnutChart.update(); } 
+    else { doughnutChart = new Chart(ctx, { type: "doughnut", data: { datasets: [{ data, backgroundColor: colors, borderWidth: 0, cutout: "76%" }] }, options: { plugins: { legend: { display: false }, tooltip: { enabled: false } } } }); }
+  }
+
+  function applyJsonImport() {
+    try {
+      const match = document.getElementById("jsonInput").value.trim().match(/\{[\s\S]*\}/);
+      if (!match) throw new Error("JSON не найден");
+      const parsed = JSON.parse(match[0]);
+      const targetDate = parsed.date || currentDate;
+      currentDate = targetDate;
+      let day = AppState.days[targetDate] || { date: targetDate, target_calories: parsed.target_calories || AppState.userProfile?.defaultTargetCal||1900, meals: [] };
+
+      if (importMode === "overwrite") {
+        day.target_calories = parsed.target_calories || day.target_calories;
+        day.meals = parsed.meals || [];
+      } else {
+        (parsed.meals || []).forEach(newMeal => {
+          let mObj = day.meals.find(m => m.meal.toLowerCase() === newMeal.meal.toLowerCase());
+          if (!mObj) { mObj = { meal: newMeal.meal, items: [] }; day.meals.push(mObj); }
+          (newMeal.items || []).forEach(nItem => {
+            const idx = mObj.items.findIndex(i => i.name.trim().toLowerCase() === nItem.name.trim().toLowerCase());
+            if (idx >= 0) mObj.items[idx] = nItem; else mObj.items.push(nItem);
+          });
+        });
+      }
+      AppState.days[targetDate] = day;
+      syncProductsDatabase(day);
+      closeImportModal(); renderDay();
+      alert("✅ Сохранено в память устройства!");
+    } catch (e) { alert("Ошибка: " + e.message); }
+  }
+
+  // CALENDAR
+  function renderCalendar() {
+    document.getElementById("calMonthTitle").innerText = `${["Янв","Фев","Мар","Апр","Май","Июн","Июл","Авг","Сен","Окт","Ноя","Дек"][calViewMonth]} ${calViewYear}`;
+    const grid = document.getElementById("calGrid"); grid.innerHTML = "";
+    const firstDay = (new Date(calViewYear, calViewMonth, 1).getDay() + 6) % 7;
+    const totalDays = new Date(calViewYear, calViewMonth + 1, 0).getDate();
+    for (let i = 0; i < firstDay; i++) grid.appendChild(Object.assign(document.createElement("div"), {className: "cal-cell empty"}));
+    for (let day = 1; day <= totalDays; day++) {
+      const dStr = `${calViewYear}-${String(calViewMonth + 1).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
+      const c = document.createElement("div"); c.className = "cal-cell"; c.innerText = day;
+      if (AppState.days[dStr] && AppState.days[dStr].meals.length > 0) { c.classList.add("has-data"); c.appendChild(Object.assign(document.createElement("div"), {className: "cal-dot"})); }
+      if (dStr === currentDate) c.classList.add("today");
+      if (selectedCalDates.has(dStr)) c.classList.add("selected");
+      c.onclick = () => { selectedCalDates.has(dStr) ? selectedCalDates.delete(dStr) : selectedCalDates.add(dStr); renderCalendar(); };
+      grid.appendChild(c);
+    }
+    
+    let sumCal = 0, sumP = 0, sumF = 0, sumC = 0, sumTarget = 0, count = 0;
+    Array.from(selectedCalDates).forEach(dt => {
+      const d = AppState.days[dt];
+      if (d && d.meals && d.meals.length > 0) { 
+        count++; 
+        sumTarget += d.target_calories || AppState.userProfile?.defaultTargetCal || 1900;
+        d.meals.forEach(m => m.items.forEach(i => { sumCal+=Number(i.cal)||0; sumP+=Number(i.p)||0; sumF+=Number(i.f)||0; sumC+=Number(i.c)||0; })); 
+      }
+    });
+    
+    const div = count || 1; // среднее берем только по дням, где есть еда
+    const totalDeficit = sumTarget - sumCal;
+    const avgDeficit = Math.round(totalDeficit / div);
+    
+    document.getElementById("avgSelectedCount").innerText = `Выбрано дней: ${selectedCalDates.size}`;
+    
+    const defEl = document.getElementById("total-deficit");
+    if(count === 0) { defEl.innerText = "0 ккал"; defEl.style.color = "var(--text-muted)"; }
+    else if(totalDeficit >= 0) { defEl.innerText = `-${totalDeficit} ккал (Дефицит)`; defEl.style.color = "var(--accent-green)"; }
+    else { defEl.innerText = `+${Math.abs(totalDeficit)} ккал (Профицит)`; defEl.style.color = "var(--accent-red)"; }
+    
+    document.getElementById("avg-deficit").innerText = count > 0 ? `В среднем: ${avgDeficit > 0 ? '-'+avgDeficit : '+'+Math.abs(avgDeficit)} ккал / день` : "";
+
+    document.getElementById("avg-cal").innerText = Math.round(sumCal / div);
+    document.getElementById("avg-pro").innerText = `${(sumP / div).toFixed(1)} г`;
+    document.getElementById("avg-fat").innerText = `${(sumF / div).toFixed(1)} г`;
+    document.getElementById("avg-carb").innerText = `${(sumC / div).toFixed(1)} г`;
+    document.getElementById("avg-total-cal").innerText = `${Math.round(sumCal)} ккал`;
+  }
+  function changeCalMonth(d) { calViewMonth+=d; if(calViewMonth<0){calViewMonth=11; calViewYear--;} else if(calViewMonth>11){calViewMonth=0; calViewYear++;} renderCalendar(); }
+  function selectCalendarPreset(p) { selectedCalDates.clear(); const t = new Date(currentDate); if (p==='week') for(let i=0;i<7;i++){let d=new Date(t); d.setDate(t.getDate()-i); selectedCalDates.add(d.toISOString().split("T")[0]);} else {const tD = new Date(calViewYear, calViewMonth+1,0).getDate(); for(let i=1;i<=tD;i++){let s=`${calViewYear}-${String(calViewMonth+1).padStart(2,"0")}-${String(i).padStart(2,"0")}`; if(AppState.days[s] && AppState.days[s].meals.length > 0) selectedCalDates.add(s);}} renderCalendar(); }
+  function clearCalendarSelection() { selectedCalDates.clear(); renderCalendar(); }
+
+  // PRODUCTS DB
+  function renderProductDatabase() {
+    const q = document.getElementById("productSearch").value.toLowerCase();
+    const c = document.getElementById("productsContainer");
+    const k = Object.keys(AppState.productsDb||{}).filter(x => x.toLowerCase().includes(q));
+    document.getElementById("productsCount").innerText = `Всего: ${k.length}`;
+    if (!k.length) c.innerHTML = `<div class="empty-state">Пусто</div>`;
+    else c.innerHTML = k.sort().map(n => {
+      const p = AppState.productsDb[n];
+      return `<div class="product-row"><div><div style="font-size:14px;font-weight:700;color:var(--text-main);">${n}</div><div style="font-size:12px;color:var(--text-muted);"><b style="color:var(--accent-orange);">${p.cal} ккал</b> • Б:${p.p} Ж:${p.f} У:${p.c}</div></div><button class="copy-chip" onclick="navigator.clipboard.writeText('${n.replace(/'/g,"\\'")} - ${p.cal} ккал (Б${p.p} Ж${p.f} У${p.c})')">Копия</button></div>`;
+    }).join("");
+  }
+
+  // STATS
+  function renderStats() {
+    const dates = Object.keys(AppState.days||{}).sort().reverse();
+    document.getElementById("historyContainer").innerHTML = dates.map(dt => {
+      let cal=0; AppState.days[dt].meals.forEach(m=>m.items.forEach(i=>cal+=Number(i.cal)||0));
+      return `<div class="history-card" onclick="currentDate='${dt}'; switchTab('diary'); renderDay();"><div class="history-header"><span>📅 ${dt}</span><span style="color:var(--accent-orange);">${Math.round(cal)} ккал</span></div></div>`;
+    }).join("");
+    
+    // Bar Chart
+    const ctxWeek = document.getElementById("weekBarChart").getContext("2d");
+    const chartDates = dates.slice(0, 7).reverse();
+    const chartCals = chartDates.map(dt => { let sum=0; AppState.days[dt].meals.forEach(m=>m.items.forEach(i=>sum+=Number(i.cal)||0)); return sum; });
+    if(weekChart) weekChart.destroy();
+    weekChart = new Chart(ctxWeek, { type: "bar", data: { labels: chartDates.map(d=>d.slice(5)), datasets: [{ data: chartCals, backgroundColor: "#10B981", borderRadius: 8 }] }, options: { plugins: { legend: { display: false } }, scales: { x: { grid: { display: false } } } } });
+  }
+
+  // BACKUP FUNCTIONS
+  function exportFullJsonBackup() {
+    const b = new Blob([JSON.stringify(AppState, null, 2)], { type: "application/json" });
+    const a = document.createElement("a"); a.href = URL.createObjectURL(b); a.download = `kbju_backup_${new Date().toISOString().slice(0,10)}.json`; a.click();
+  }
+  function triggerJsonImport() { document.getElementById("jsonFileInput").click(); }
+  function handleJsonFileImport(e) {
+    const reader = new FileReader();
+    reader.onload = ev => { try { const d = JSON.parse(ev.target.result); if(d.days) { AppState = d; saveState(); alert("✅ Восстановлено!"); location.reload(); } else throw new Error(); } catch(err) { alert("Ошибка JSON"); } };
+    reader.readAsText(e.target.files[0]);
+  }
+  
+  function exportFullExcel() {
+    const wb = XLSX.utils.book_new();
+    const lR=[["Дата","Прием","Блюдо","Ккал","Б","Ж","У"]];
+    Object.keys(AppState.days||{}).forEach(dt => AppState.days[dt].meals.forEach(m => m.items.forEach(i => lR.push([dt,m.meal,i.name,i.cal,i.p,i.f,i.c]))));
+    XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(lR), "Лог");
+    const pR=[["Продукт","Ккал","Б","Ж","У"]];
+    Object.keys(AppState.productsDb||{}).forEach(k => {let p=AppState.productsDb[k]; pR.push([k,p.cal,p.p,p.f,p.c]);});
+    XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(pR), "База");
+    XLSX.writeFile(wb, `kbju_excel_${new Date().toISOString().slice(0,10)}.xlsx`);
+  }
+  function exportProductsExcel() { exportFullExcel(); }
+  function triggerExcelImport() { document.getElementById("excelFileInput").click(); }
+  function handleExcelFileImport(event) {
+    const file = event.target.files[0]; if(!file) return;
+    const reader = new FileReader();
+    reader.onload = e => {
+      try {
+        const wb = XLSX.read(new Uint8Array(e.target.result), {type:"array"});
+        if(wb.Sheets["Дневник_Лог"]) {
+          XLSX.utils.sheet_to_json(wb.Sheets["Дневник_Лог"]).forEach(r => {
+            const dt = r["Дата"]||r["date"], mealType = r["Прием пищи"]||r["meal"], name = r["Продукт / Блюдо"]||r["name"];
+            if(dt && name) {
+              if(!AppState.days[dt]) AppState.days[dt] = {date:dt, target_calories: AppState.userProfile?.defaultTargetCal||1900, meals:[]};
+              let m = AppState.days[dt].meals.find(x=>x.meal===mealType);
+              if(!m) { m = {meal:mealType, items:[]}; AppState.days[dt].meals.push(m); }
+              const exIdx = m.items.findIndex(i=>i.name===name);
+              const itm = {name, cal:Number(r["Калории (ккал)"])||0, p:Number(r["Белки (г)"])||0, f:Number(r["Жиры (г)"])||0, c:Number(r["Углеводы (г)"])||0};
+              if(exIdx>=0) m.items[exIdx] = itm; else m.items.push(itm);
+            }
+          });
+        }
+        if(wb.Sheets["База_Продуктов"]) {
+          if(!AppState.productsDb) AppState.productsDb = {};
+          XLSX.utils.sheet_to_json(wb.Sheets["База_Продуктов"]).forEach(r => {
+            if(r["Название продукта / блюда"]) AppState.productsDb[r["Название продукта / блюда"]] = { cal: Number(r["Калории (ккал)"])||0, p: Number(r["Белки (г)"])||0, f: Number(r["Жиры (г)"])||0, c: Number(r["Углеводы (г)"])||0, lastUsed: r["Последний прием"]||currentDate };
+          });
+        }
+        saveState(); renderDay(); renderProductDatabase(); alert("✅ Excel загружен!");
+      } catch(err){ alert("Ошибка Excel"); }
+    }; reader.readAsArrayBuffer(file); event.target.value = "";
+  }
+
+  // PROFILE / NORM
+  function setNormMode(m) { 
+    normMode=m; AppState.userProfile.mode = m; 
+    document.getElementById("norm-mode-auto").classList.toggle("active",m==="auto"); 
+    document.getElementById("norm-mode-manual").classList.toggle("active",m==="manual"); 
+    document.getElementById("norm-auto-block").style.display = m==="auto" ? "block" : "none";
+    document.getElementById("norm-manual-block").style.display = m==="manual" ? "block" : "none";
+    saveState();
+  }
+  function setCalcGender(g) { calcGender=g; document.getElementById("calc-gender-m").classList.toggle("active",g==="m"); document.getElementById("calc-gender-f").classList.toggle("active",g==="f"); }
+  
+  function calculateAndSaveNorm() {
+    let tCal, tPro;
+    if(normMode === 'auto') {
+        const w = Number(document.getElementById("calc-weight").value), h = Number(document.getElementById("calc-height").value), a = Number(document.getElementById("calc-age").value), act = Number(document.getElementById("calc-activity").value), goal = Number(document.getElementById("calc-goal").value);
+        let bmr = (10*w) + (6.25*h) - (5*a); bmr = calcGender==="m" ? bmr+5 : bmr-161;
+        tCal = Math.round(bmr * act * (1+(goal/100))); tPro = Math.round(w * 1.8);
+        AppState.userProfile = { mode: 'auto', gender: calcGender, age: a, weight: w, height: h, activity: act, goal: goal, defaultTargetCal: tCal, defaultTargetPro: tPro };
+    } else {
+        tCal = Number(document.getElementById("manual-cal-global").value) || 1900;
+        tPro = Number(document.getElementById("manual-pro-global").value) || 130;
+        AppState.userProfile = { mode: 'manual', defaultTargetCal: tCal, defaultTargetPro: tPro };
+    }
+    
+    if(AppState.days[currentDate]) { AppState.days[currentDate].target_calories = tCal; AppState.days[currentDate].target_protein = tPro; }
+    saveState(); updateProfileUI(); renderDay(); alert(`🎯 Цель сохранена: ${tCal} ккал`);
+  }
+
+  function updateProfileUI() {
+    const p = AppState.userProfile || DEFAULT_STATE.userProfile;
+    document.getElementById("prof-target-cal").innerText = `${p.defaultTargetCal || 1900} ккал`;
+    document.getElementById("prof-target-pro").innerText = `${p.defaultTargetPro || 130} г`;
+    
+    setNormMode(p.mode || 'auto');
+    if(p.mode === 'auto') {
+        document.getElementById("calc-age").value = p.age || 25;
+        document.getElementById("calc-weight").value = p.weight || 75;
+        document.getElementById("calc-height").value = p.height || 178;
+        document.getElementById("calc-activity").value = p.activity || 1.375;
+        document.getElementById("calc-goal").value = p.goal || 0;
+        setCalcGender(p.gender || "m");
+    } else {
+        document.getElementById("manual-cal-global").value = p.defaultTargetCal || 1900;
+        document.getElementById("manual-pro-global").value = p.defaultTargetPro || 130;
+    }
+    if(AppState.settings?.backupTime) document.getElementById("backup-time-input").value = AppState.settings.backupTime;
+  }
+
+  // NAV & MODALS
+  function changeDate(d) { let date = new Date(currentDate); date.setDate(date.getDate()+d); currentDate = date.toISOString().split("T")[0]; renderDay(); }
+  function switchTab(t) { document.querySelectorAll(".tab-content, .nav-tab").forEach(el => el.classList.remove("active")); document.getElementById(`tab-${t}`).classList.add("active"); document.querySelector(`.nav-tab[onclick="switchTab('${t}')"]`).classList.add("active"); if(t==='calendar') renderCalendar(); if(t==='products') renderProductDatabase(); if(t==='stats') renderStats(); if(t==='profile') updateProfileUI(); }
+  function openImportModal() { document.getElementById("jsonInput").value=""; document.getElementById("importModal").classList.add("open"); }
+  function closeImportModal() { document.getElementById("importModal").classList.remove("open"); }
+  function setImportMode(m) { importMode=m; document.getElementById("mode-overwrite").classList.toggle("active",m==="overwrite"); document.getElementById("mode-append").classList.toggle("active",m==="append"); }
+  function openTargetModal() { document.getElementById("targetCalInput").value=AppState.days[currentDate]?.target_calories||AppState.userProfile?.defaultTargetCal||1900; document.getElementById("targetProInput").value=AppState.days[currentDate]?.target_protein||AppState.userProfile?.defaultTargetPro||130; document.getElementById("targetModal").classList.add("open"); }
+  function closeTargetModal() { document.getElementById("targetModal").classList.remove("open"); }
+  function saveTargetModal() { if(!AppState.days[currentDate]) AppState.days[currentDate]={date:currentDate, meals:[]}; AppState.days[currentDate].target_calories=Number(document.getElementById("targetCalInput").value); AppState.days[currentDate].target_protein=Number(document.getElementById("targetProInput").value); saveState(); closeTargetModal(); renderDay(); }
+  async function quickPasteFromClipboard() { try { document.getElementById("jsonInput").value = await navigator.clipboard.readText(); applyJsonImport(); } catch(e) { openImportModal(); } }
+
+  window.addEventListener("DOMContentLoaded", () => { applyTheme(); lucide.createIcons(); renderDay(); updateProfileUI(); });
+</script>
+</body>
+</html>
+
