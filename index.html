@@ -797,16 +797,16 @@
       </div>
     </div>
 
-    <div class="action-row">
-      <button class="import-btn" onclick="openImportModal()">
-        <i data-lucide="sparkles" style="width:18px;height:18px;"></i> Импорт из чата (Текст / JSON)
+    <div class="action-row" style="display: flex; gap: 8px;">
+      <button class="btn-primary" onclick="quickPasteFromClipboard()" style="flex: 1; display: flex; align-items: center; justify-content: center; gap: 8px; font-size: 15px; padding: 14px;">
+        <i data-lucide="clipboard-paste" style="width:20px;height:20px;"></i> Вставить из буфера
       </button>
-      <button class="settings-quick-btn" onclick="quickPasteFromClipboard()" title="Быстрая вставка">
-        <i data-lucide="clipboard-paste" style="width:18px;height:18px;color:var(--accent-green);"></i>
+      <button class="btn-secondary" onclick="openImportModal()" style="width: auto; padding: 14px 18px;" title="Окно ручного импорта">
+        <i data-lucide="sparkles" style="width:20px;height:20px;"></i>
       </button>
     </div>
 
-    <div class="card">
+    <div class="card" style="margin-top: 14px;">
       <div class="cal-summary-grid">
         <div class="stat-box">
           <div class="val" id="val-consumed" style="color:var(--accent-orange);">0</div>
@@ -1040,7 +1040,7 @@
       
       <div class="backup-btn-group" style="margin-top: 8px;">
         <button class="btn-action-outline" onclick="exportFullExcel()">
-          <i data-lucide="file-down" style="width:14px;height:14px;"></i> Скачать Excel
+          <i data-lucide="file-down" style="width:14px;height:14px;"></i> Дневник Excel
         </button>
         <button class="btn-action-outline" onclick="triggerExcelImport()">
           <i data-lucide="file-up" style="width:14px;height:14px;"></i> Загрузить Excel
@@ -2071,6 +2071,20 @@
     XLSX.writeFile(wb, `kbju_excel_${currentDate}.xlsx`);
   }
   
+  // Экспорт только продуктов
+  function exportProductsExcel() {
+    const wb = XLSX.utils.book_new();
+    const lR = [["Продукт", "Ккал", "Белки", "Жиры", "Углеводы"]];
+
+    Object.keys(AppState.productsDb || {}).sort().forEach(name => {
+      const p = AppState.productsDb[name];
+      lR.push([name, p.cal || 0, p.p || 0, p.f || 0, p.c || 0]);
+    });
+
+    XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(lR), "База продуктов");
+    XLSX.writeFile(wb, `kbju_products_${currentDate}.xlsx`);
+  }
+  
   function triggerExcelImport() { 
     document.getElementById("excelFileInput").click(); 
   }
@@ -2114,7 +2128,16 @@
     event.target.value = "";
   }
 
-  // ================= 12. ЗАПУСК ПРИЛОЖЕНИЯ =================
+  // ================= 12. ЗАПУСК ПРИЛОЖЕНИЯ И ОФЛАЙН =================
+  // Регистрация Service Worker для PWA (Офлайн)
+  if ('serviceWorker' in navigator) {
+    window.addEventListener('load', () => {
+      navigator.serviceWorker.register('/sw.js').then(reg => {
+        console.log('Service Worker зарегистрирован!', reg);
+      }).catch(err => console.error('Ошибка регистрации SW', err));
+    });
+  }
+
   window.addEventListener("DOMContentLoaded", () => { 
     applyTheme(); 
     lucide.createIcons(); 
@@ -2124,3 +2147,4 @@
 </script>
 </body>
 </html>
+
