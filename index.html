@@ -763,6 +763,28 @@
     .tab-content.active { 
       display: block; 
     }
+    
+    .meas-card-input {
+      background: var(--bg-card);
+      border-radius: 12px;
+      padding: 12px 16px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      box-shadow: 0 4px 10px rgba(0,0,0,0.03);
+    }
+    .meas-val-input {
+      font-size: 16px;
+      font-weight: 800;
+      color: var(--text-main);
+      border: none;
+      background: transparent;
+      width: 50px;
+      outline: none;
+      text-align: left;
+      padding: 0;
+    }
+    .meas-val-input::placeholder { color: var(--border); }
   </style>
 </head>
 <body>
@@ -770,6 +792,7 @@
 <!-- Скрытые инпуты для загрузки файлов -->
 <input type="file" id="jsonFileInput" accept=".json" style="display:none;" onchange="handleJsonFileImport(event)">
 <input type="file" id="excelFileInput" accept=".xlsx, .xls" style="display:none;" onchange="handleExcelFileImport(event)">
+<input type="file" id="measJsonFileInput" accept=".json" style="display:none;" onchange="handleMeasJsonFileImport(event)">
 
 <div class="container">
   
@@ -867,6 +890,32 @@
       </div>
     </div>
     
+    <!-- Статус дня (Праздник, Тренировка) -->
+    <div class="meal-group" style="padding: 12px 16px; display: flex; justify-content: center; gap: 24px; align-items: center; margin-bottom: 14px;">
+      <label style="display: flex; align-items: center; gap: 8px; font-size: 14px; font-weight: 600; color: var(--text-main); cursor: pointer;">
+        <input type="checkbox" id="cb-holiday" onchange="toggleDayFlag('isHoliday')" style="width: 16px; height: 16px; accent-color: var(--accent-orange);">
+        🥳 Праздник
+      </label>
+      <label style="display: flex; align-items: center; gap: 8px; font-size: 14px; font-weight: 600; color: var(--text-main); cursor: pointer;">
+        <input type="checkbox" id="cb-workout" onchange="toggleDayFlag('isWorkout')" style="width: 16px; height: 16px; accent-color: var(--accent-green);">
+        🚴 Тренировка
+      </label>
+    </div>
+
+    <!-- Блок Вес и Замеры -->
+    <div class="meal-group" style="padding: 12px 16px; display: flex; justify-content: space-between; align-items: center; cursor: pointer; margin-bottom: 14px;" onclick="openMeasurementsModal()">
+      <div style="display: flex; align-items: center; gap: 8px;">
+        <div style="background: var(--bg-subtle); color: var(--text-main); padding: 6px; border-radius: 10px; display: flex; justify-content: center; align-items: center;">
+          <i data-lucide="ruler" style="width: 18px; height: 18px;"></i>
+        </div>
+        <span style="font-weight: 700; font-size: 15px; color: var(--text-main);">Вес и Замеры</span>
+      </div>
+      <div style="display: flex; align-items: center; gap: 6px;">
+        <span id="meas-summary-text" style="font-size: 13px; color: var(--text-muted); font-weight: 600;">Внести</span>
+        <i data-lucide="chevron-right" style="width: 16px; height: 16px; color: var(--text-muted);"></i>
+      </div>
+    </div>
+
     <!-- Контейнер для приемов пищи -->
     <div id="mealsContainer"></div>
   </div>
@@ -945,6 +994,16 @@
     <input type="text" class="search-input" id="productSearch" placeholder="🔍 Поиск по базе..." oninput="renderProductDatabase()">
     <div id="productsCount" style="font-size:12px; color:var(--text-muted); margin-bottom:10px;">Всего: 0</div>
     
+    <div id="multiSelectActions" style="display: none; gap: 8px; margin-bottom: 14px;">
+      <button class="btn-primary" style="flex: 1; margin: 0; padding: 10px; font-size: 13px; display: flex; align-items: center; justify-content: center; white-space: nowrap;" onclick="copySelectedProducts()">
+        <i data-lucide="copy" style="width:16px;height:16px;margin-right:6px;"></i>
+        Скопировать (<span id="selCount">0</span>)
+      </button>
+      <button class="btn-primary" style="flex: 1; margin: 0; padding: 10px; font-size: 13px; background: var(--bg-subtle); color: var(--text-main); border: 1px solid var(--border); display: flex; align-items: center; justify-content: center; white-space: nowrap;" onclick="clearSelectedProducts()">
+        Сбросить
+      </button>
+    </div>
+
     <div id="productsContainer">
       <!-- Список продуктов генерируется здесь -->
     </div>
@@ -955,15 +1014,84 @@
     <div class="header">
       <h2>📊 Графики</h2>
     </div>
-    
-    <div class="card">
-      <div style="font-size:14px; font-weight:700; margin-bottom:12px;">Калории по дням (С линией цели)</div>
-      <canvas id="weekBarChart" style="max-height: 200px; width:100%;"></canvas>
+
+    <div class="seg-control">
+      <button class="seg-btn active" id="stats-tab-btn-kbju" onclick="switchStatsTab('kbju')">КБЖУ</button>
+      <button class="seg-btn" id="stats-tab-btn-meas" onclick="switchStatsTab('meas')">Замеры</button>
     </div>
     
-    <h3 style="font-size: 16px; font-weight:800; margin: 16px 0 10px 4px;">История по дням</h3>
-    <div id="historyContainer">
-      <!-- История дней -->
+    <div id="stats-content-kbju">
+      <div class="card">
+        <div style="font-size:14px; font-weight:700; margin-bottom:12px;">Калории по дням (С линией цели)</div>
+        <canvas id="weekBarChart" style="max-height: 200px; width:100%;"></canvas>
+      </div>
+      
+      <h3 style="font-size: 16px; font-weight:800; margin: 16px 0 10px 4px;">История по дням</h3>
+      <div id="historyContainer">
+        <!-- История дней -->
+      </div>
+    </div>
+
+    <div id="stats-content-meas" style="display: none;">
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 12px;">
+        <h3 style="font-size: 16px; font-weight:800;">Динамика</h3>
+        <select class="form-select" id="stats-meas-period" style="width:auto; border-radius: 8px; font-weight: 600; padding: 4px 10px; height: 32px; font-size: 13px;" onchange="renderMeasurementsStats()">
+          <option value="7">Неделя</option>
+          <option value="30">Месяц</option>
+          <option value="60">2 месяца</option>
+          <option value="90">3 месяца</option>
+          <option value="180">6 месяцев</option>
+          <option value="365">Год</option>
+        </select>
+      </div>
+
+      <div class="card" style="margin-bottom: 16px;">
+        <div style="font-size:14px; font-weight:700; margin-bottom:4px;">Вес (кг)</div>
+        <div id="meas-weight-avg" style="font-size:12px; color:var(--text-muted); margin-bottom:12px;">В среднем: 0</div>
+        <canvas id="measWeightChart" style="max-height: 180px; width:100%;"></canvas>
+      </div>
+
+      <div class="card" style="margin-bottom: 16px;">
+        <div style="font-size:14px; font-weight:700; margin-bottom:4px;">Плечи (см)</div>
+        <div id="meas-shoulders-avg" style="font-size:12px; color:var(--text-muted); margin-bottom:12px;">В среднем: 0</div>
+        <canvas id="measShouldersChart" style="max-height: 180px; width:100%;"></canvas>
+      </div>
+      
+      <div class="card" style="margin-bottom: 16px;">
+        <div style="font-size:14px; font-weight:700; margin-bottom:4px;">Грудь (см)</div>
+        <div id="meas-chest-avg" style="font-size:12px; color:var(--text-muted); margin-bottom:12px;">В среднем: 0</div>
+        <canvas id="measChestChart" style="max-height: 180px; width:100%;"></canvas>
+      </div>
+
+      <div class="card" style="margin-bottom: 16px;">
+        <div style="font-size:14px; font-weight:700; margin-bottom:4px;">Руки (см)</div>
+        <div id="meas-arms-avg" style="font-size:12px; color:var(--text-muted); margin-bottom:12px;">В среднем: 0</div>
+        <canvas id="measArmsChart" style="max-height: 180px; width:100%;"></canvas>
+      </div>
+
+      <div class="card" style="margin-bottom: 16px;">
+        <div style="font-size:14px; font-weight:700; margin-bottom:4px;">Талия (см)</div>
+        <div id="meas-waist-avg" style="font-size:12px; color:var(--text-muted); margin-bottom:12px;">В среднем: 0</div>
+        <canvas id="measWaistChart" style="max-height: 180px; width:100%;"></canvas>
+      </div>
+
+      <div class="card" style="margin-bottom: 16px;">
+        <div style="font-size:14px; font-weight:700; margin-bottom:4px;">Живот (см)</div>
+        <div id="meas-belly-avg" style="font-size:12px; color:var(--text-muted); margin-bottom:12px;">В среднем: 0</div>
+        <canvas id="measBellyChart" style="max-height: 180px; width:100%;"></canvas>
+      </div>
+
+      <div class="card" style="margin-bottom: 16px;">
+        <div style="font-size:14px; font-weight:700; margin-bottom:4px;">Бёдра (см)</div>
+        <div id="meas-hips-avg" style="font-size:12px; color:var(--text-muted); margin-bottom:12px;">В среднем: 0</div>
+        <canvas id="measHipsChart" style="max-height: 180px; width:100%;"></canvas>
+      </div>
+
+      <div class="card">
+        <div style="font-size:14px; font-weight:700; margin-bottom:4px;">Ноги (см)</div>
+        <div id="meas-legs-avg" style="font-size:12px; color:var(--text-muted); margin-bottom:12px;">В среднем: 0</div>
+        <canvas id="measLegsChart" style="max-height: 180px; width:100%;"></canvas>
+      </div>
     </div>
   </div>
 
@@ -1048,6 +1176,19 @@
       </div>
     </div>
     
+    <!-- Экспорт Замеров -->
+    <div class="backup-box">
+      <h4><i data-lucide="ruler" style="width:18px;height:18px;color:var(--text-muted);"></i> Бэкап Замеров</h4>
+      <div class="backup-btn-group">
+        <button class="btn-action-outline" onclick="exportMeasJson()">
+          <i data-lucide="download" style="width:14px;height:14px;"></i> Скачать JSON
+        </button>
+        <button class="btn-action-outline" onclick="triggerMeasJsonImport()">
+          <i data-lucide="upload" style="width:14px;height:14px;"></i> Загрузить JSON
+        </button>
+      </div>
+    </div>
+
     <!-- Напоминания -->
     <div class="backup-box">
       <h4><i data-lucide="bell-ring" style="width:18px;height:18px;color:var(--accent-orange);"></i> Напоминание о бэкапе</h4>
@@ -1188,6 +1329,118 @@
     </button>
   </div>
 </div>
+
+<!-- 5. Модалка: Замеры (как отдельный экран) -->
+<div class="modal-overlay" id="measurementsModal" style="background: var(--bg-page); padding: 0;">
+  <div style="width: 100%; height: 100%; background: var(--bg-page); overflow-y: auto; padding-bottom: 40px; position: relative;">
+    
+    <div style="position: sticky; top: 0; background: var(--bg-card); color: var(--text-main); padding: 16px; display: flex; align-items: center; justify-content: space-between; z-index: 10; padding-top: max(16px, env(safe-area-inset-top)); border-bottom: 1px solid var(--border);">
+      <button onclick="closeMeasurementsModal()" style="background:none;border:none;color:var(--text-main);cursor:pointer;padding:4px;">
+        <i data-lucide="chevron-left" style="width:24px;height:24px;"></i>
+      </button>
+      <div style="text-align: center;">
+        <div style="font-size: 18px; font-weight: 700;">Замеры</div>
+        <div id="meas-modal-date" style="font-size: 13px; color: var(--text-muted);">Сегодня</div>
+      </div>
+      <div style="width:24px;"></div>
+    </div>
+
+    <div style="padding: 24px 16px; position: relative; z-index: 2; max-width: 440px; margin: 0 auto;">
+
+      <div style="display: flex; flex-direction: column; gap: 14px; margin-left: 20px;">
+        
+        <div class="meas-card-input">
+          <div>
+            <div style="font-size: 14px; color: var(--text-main); margin-bottom: 4px;">Вес</div>
+            <div style="display:flex; align-items:center; gap: 4px;">
+              <input type="number" id="inp-meas-weight" class="meas-val-input" placeholder="0" onchange="saveMeasurement('weight')">
+              <span style="font-size: 14px; font-weight: 700; color: var(--text-main);">кг</span>
+            </div>
+          </div>
+          <i data-lucide="chevron-right" style="color:var(--border); width:20px;"></i>
+        </div>
+
+        <div class="meas-card-input">
+          <div>
+            <div style="font-size: 14px; color: var(--text-main); margin-bottom: 4px;">Плечи</div>
+            <div style="display:flex; align-items:center; gap: 4px;">
+              <input type="number" id="inp-meas-shoulders" class="meas-val-input" placeholder="0" onchange="saveMeasurement('shoulders')">
+              <span style="font-size: 14px; font-weight: 700; color: var(--text-main);">см</span>
+            </div>
+          </div>
+          <i data-lucide="chevron-right" style="color:var(--border); width:20px;"></i>
+        </div>
+
+        <div class="meas-card-input">
+          <div>
+            <div style="font-size: 14px; color: var(--text-main); margin-bottom: 4px;">Грудь</div>
+            <div style="display:flex; align-items:center; gap: 4px;">
+              <input type="number" id="inp-meas-chest" class="meas-val-input" placeholder="0" onchange="saveMeasurement('chest')">
+              <span style="font-size: 14px; font-weight: 700; color: var(--text-main);">см</span>
+            </div>
+          </div>
+          <i data-lucide="chevron-right" style="color:var(--border); width:20px;"></i>
+        </div>
+
+        <div class="meas-card-input">
+          <div>
+            <div style="font-size: 14px; color: var(--text-main); margin-bottom: 4px;">Руки</div>
+            <div style="display:flex; align-items:center; gap: 4px;">
+              <input type="number" id="inp-meas-arms" class="meas-val-input" placeholder="0" onchange="saveMeasurement('arms')">
+              <span style="font-size: 14px; font-weight: 700; color: var(--text-main);">см</span>
+            </div>
+          </div>
+          <i data-lucide="chevron-right" style="color:var(--border); width:20px;"></i>
+        </div>
+
+        <div class="meas-card-input">
+          <div>
+            <div style="font-size: 14px; color: var(--text-main); margin-bottom: 4px;">Талия</div>
+            <div style="display:flex; align-items:center; gap: 4px;">
+              <input type="number" id="inp-meas-waist" class="meas-val-input" placeholder="0" onchange="saveMeasurement('waist')">
+              <span style="font-size: 14px; font-weight: 700; color: var(--text-main);">см</span>
+            </div>
+          </div>
+          <i data-lucide="chevron-right" style="color:var(--border); width:20px;"></i>
+        </div>
+
+        <div class="meas-card-input">
+          <div>
+            <div style="font-size: 14px; color: var(--text-main); margin-bottom: 4px;">Живот</div>
+            <div style="display:flex; align-items:center; gap: 4px;">
+              <input type="number" id="inp-meas-belly" class="meas-val-input" placeholder="0" onchange="saveMeasurement('belly')">
+              <span style="font-size: 14px; font-weight: 700; color: var(--text-main);">см</span>
+            </div>
+          </div>
+          <i data-lucide="chevron-right" style="color:var(--border); width:20px;"></i>
+        </div>
+
+        <div class="meas-card-input">
+          <div>
+            <div style="font-size: 14px; color: var(--text-main); margin-bottom: 4px;">Бёдра</div>
+            <div style="display:flex; align-items:center; gap: 4px;">
+              <input type="number" id="inp-meas-hips" class="meas-val-input" placeholder="0" onchange="saveMeasurement('hips')">
+              <span style="font-size: 14px; font-weight: 700; color: var(--text-main);">см</span>
+            </div>
+          </div>
+          <i data-lucide="chevron-right" style="color:var(--border); width:20px;"></i>
+        </div>
+
+        <div class="meas-card-input">
+          <div>
+            <div style="font-size: 14px; color: var(--text-main); margin-bottom: 4px;">Ноги</div>
+            <div style="display:flex; align-items:center; gap: 4px;">
+              <input type="number" id="inp-meas-legs" class="meas-val-input" placeholder="0" onchange="saveMeasurement('legs')">
+              <span style="font-size: 14px; font-weight: 700; color: var(--text-main);">см</span>
+            </div>
+          </div>
+          <i data-lucide="chevron-right" style="color:var(--border); width:20px;"></i>
+        </div>
+        
+      </div>
+    </div>
+  </div>
+</div>
 <script>
   // ================= 1. ИНИЦИАЛИЗАЦИЯ И ХРАНИЛИЩЕ =================
   const DEFAULT_STATE = { 
@@ -1201,7 +1454,8 @@
     }, 
     settings: { backupTime: "", lastNotified: "" },
     days: {}, 
-    productsDb: {} 
+    productsDb: {},
+    measurements: {}
   };
   
   let AppState;
@@ -1210,6 +1464,7 @@
     // Защита от старых сохранений без новых полей
     if (!AppState.userProfile) AppState.userProfile = DEFAULT_STATE.userProfile;
     if (!AppState.userProfile.tdee) AppState.userProfile.tdee = 2200;
+    if (!AppState.measurements) AppState.measurements = {};
   } catch (e) { 
     AppState = DEFAULT_STATE; 
   }
@@ -1339,12 +1594,34 @@
     return motivationalQuotes[2];
   }
 
+  function toggleDayFlag(flag) {
+    if (!AppState.days[currentDate]) {
+      AppState.days[currentDate] = { 
+        date: currentDate, 
+        target_calories: AppState.userProfile.defaultTargetCal, 
+        meals: [] 
+      };
+    }
+    
+    if (flag === 'isHoliday') {
+      AppState.days[currentDate].isHoliday = document.getElementById("cb-holiday").checked;
+    } else if (flag === 'isWorkout') {
+      AppState.days[currentDate].isWorkout = document.getElementById("cb-workout").checked;
+    }
+    saveState();
+    renderCalendar(); // Опционально обновляем календарь, если он отрендерен
+  }
+
   function renderDay() {
     const dayData = AppState.days[currentDate] || { 
       date: currentDate, 
       target_calories: AppState.userProfile.defaultTargetCal, 
       meals: [] 
     };
+    
+    document.getElementById("cb-holiday").checked = !!dayData.isHoliday;
+    document.getElementById("cb-workout").checked = !!dayData.isWorkout;
+
     
     const d = new Date(currentDate);
     const months = ["января","февраля","марта","апреля","мая","июня","июля","августа","сентября","октября","ноября","декабря"];
@@ -1421,6 +1698,23 @@
           </div>`;
       }).join("");
     }
+
+    // Обновляем плашку замеров
+    const measObj = AppState.measurements[currentDate];
+    const measSummaryEl = document.getElementById("meas-summary-text");
+    if (measSummaryEl) {
+      if (measObj && Object.values(measObj).some(v => v !== null)) {
+        let txt = [];
+        if (measObj.weight) txt.push(`${measObj.weight} кг`);
+        if (measObj.waist) txt.push(`Талия: ${measObj.waist}`);
+        measSummaryEl.innerHTML = txt.length > 0 ? txt.join(" • ") : "Заполнено";
+        measSummaryEl.style.color = "var(--accent-green)";
+      } else {
+        measSummaryEl.innerHTML = `Внести <i data-lucide="chevron-right" style="width: 16px; height: 16px; vertical-align: middle;"></i>`;
+        measSummaryEl.style.color = "var(--text-muted)";
+      }
+    }
+
     lucide.createIcons();
   }
 
@@ -1440,6 +1734,40 @@
         options: { plugins: { legend: { display: false }, tooltip: { enabled: false } } } 
       }); 
     }
+  }
+
+  // ================= 3.5 ЗАМЕРЫ И ВЕС =================
+  function openMeasurementsModal() {
+    const d = new Date(currentDate);
+    const months = ["января","февраля","марта","апреля","мая","июня","июля","августа","сентября","октября","ноября","декабря"];
+    const isToday = new Date().toISOString().split("T")[0] === currentDate;
+    document.getElementById("meas-modal-date").innerText = isToday ? "Сегодня, " + d.getDate() + " " + months[d.getMonth()] : d.getDate() + " " + months[d.getMonth()];
+
+    const meas = AppState.measurements[currentDate] || {};
+    document.getElementById("inp-meas-weight").value = meas.weight || '';
+    document.getElementById("inp-meas-shoulders").value = meas.shoulders || '';
+    document.getElementById("inp-meas-chest").value = meas.chest || '';
+    document.getElementById("inp-meas-arms").value = meas.arms || '';
+    document.getElementById("inp-meas-waist").value = meas.waist || '';
+    document.getElementById("inp-meas-belly").value = meas.belly || '';
+    document.getElementById("inp-meas-hips").value = meas.hips || '';
+    document.getElementById("inp-meas-legs").value = meas.legs || '';
+
+    document.getElementById("measurementsModal").classList.add("open");
+  }
+
+  function closeMeasurementsModal() {
+    document.getElementById("measurementsModal").classList.remove("open");
+  }
+
+  function saveMeasurement(field) {
+    if (!AppState.measurements[currentDate]) {
+      AppState.measurements[currentDate] = {};
+    }
+    const val = parseFloat(document.getElementById(`inp-meas-${field}`).value);
+    AppState.measurements[currentDate][field] = isNaN(val) ? null : val;
+    saveState();
+    renderDay(); // чтобы обновилась плашка
   }
 
   // ================= 4. РУЧНОЙ ВВОД (МОДАЛКА) =================
@@ -1722,9 +2050,26 @@
       c.className = "cal-cell"; 
       c.innerText = day;
       
-      if (AppState.days[dStr] && AppState.days[dStr].meals.length > 0) { 
-        c.classList.add("has-data"); 
-        c.appendChild(Object.assign(document.createElement("div"), {className: "cal-dot"})); 
+      if (AppState.days[dStr]) { 
+        if (AppState.days[dStr].meals && AppState.days[dStr].meals.length > 0) {
+          c.classList.add("has-data"); 
+          c.appendChild(Object.assign(document.createElement("div"), {className: "cal-dot"})); 
+        }
+        
+        let emojiHtml = "";
+        if (AppState.days[dStr].isHoliday) emojiHtml += "🥳";
+        if (AppState.days[dStr].isWorkout) emojiHtml += "🚴";
+        
+        if (emojiHtml) {
+          const emojiContainer = document.createElement("div");
+          emojiContainer.style.fontSize = "11px";
+          emojiContainer.style.lineHeight = "1";
+          emojiContainer.style.marginTop = "2px";
+          emojiContainer.style.display = "flex";
+          emojiContainer.style.gap = "2px";
+          emojiContainer.innerText = emojiHtml;
+          c.appendChild(emojiContainer);
+        }
       }
       
       if (dStr === currentDate) c.classList.add("today");
@@ -1825,12 +2170,53 @@
   }
 
   // ================= 8. БАЗА ПРОДУКТОВ =================
+  let selectedProducts = new Set();
+
+  function toggleProductSelection(name) {
+    if (selectedProducts.has(name)) {
+      selectedProducts.delete(name);
+    } else {
+      selectedProducts.add(name);
+    }
+    renderProductDatabase();
+  }
+
+  function clearSelectedProducts() {
+    selectedProducts.clear();
+    renderProductDatabase();
+  }
+
+  function copySelectedProducts() {
+    if (selectedProducts.size === 0) return;
+    const lines = [];
+    selectedProducts.forEach(n => {
+      const p = AppState.productsDb[n];
+      lines.push(`${n} - ${p.cal} ккал (Б:${p.p} Ж:${p.f} У:${p.c})`);
+    });
+    navigator.clipboard.writeText(lines.join("\n"));
+    alert("Скопировано блюд: " + selectedProducts.size);
+    selectedProducts.clear();
+    renderProductDatabase();
+  }
+
   function renderProductDatabase() {
     const q = document.getElementById("productSearch").value.toLowerCase();
     const c = document.getElementById("productsContainer");
-    const keys = Object.keys(AppState.productsDb || {}).filter(x => x.toLowerCase().includes(q)).sort();
     
-    document.getElementById("productsCount").innerText = `Всего продуктов: ${keys.length}`;
+    const allKeys = Object.keys(AppState.productsDb || {}).sort();
+    const selKeys = allKeys.filter(x => selectedProducts.has(x));
+    const unselKeys = allKeys.filter(x => !selectedProducts.has(x) && x.toLowerCase().includes(q));
+    const keys = [...selKeys, ...unselKeys];
+    
+    document.getElementById("productsCount").innerText = `Всего продуктов: ${allKeys.length}`;
+    
+    const actions = document.getElementById("multiSelectActions");
+    if (selectedProducts.size > 0) {
+      actions.style.display = "flex";
+      document.getElementById("selCount").innerText = selectedProducts.size;
+    } else {
+      actions.style.display = "none";
+    }
     
     if (!keys.length) {
       c.innerHTML = `<div class="empty-state">Продукты не найдены</div>`;
@@ -1838,15 +2224,23 @@
       c.innerHTML = keys.map(n => {
         const p = AppState.productsDb[n];
         const copyTxt = `${n.replace(/'/g, "\\'")} - ${p.cal} ккал (Б:${p.p} Ж:${p.f} У:${p.c})`;
+        const isSel = selectedProducts.has(n);
+        const rowStyle = isSel ? "background: var(--bg-subtle); border-color: var(--accent-purple); cursor: pointer;" : "cursor: pointer;";
+        
         return `
-          <div class="product-row">
-            <div>
-              <div style="font-size:14px;font-weight:700;color:var(--text-main);">${n}</div>
-              <div style="font-size:12px;color:var(--text-muted);">
-                <b style="color:var(--accent-orange);">${p.cal} ккал</b> • Б:${p.p} Ж:${p.f} У:${p.c}
+          <div class="product-row" style="${rowStyle}" onclick="toggleProductSelection('${n.replace(/'/g, "\\'")}')">
+            <div style="display:flex; align-items:center; gap: 12px;">
+              <div style="width: 22px; height: 22px; border-radius: 6px; border: 2px solid ${isSel ? 'var(--accent-purple)' : 'var(--border)'}; background: ${isSel ? 'var(--accent-purple)' : 'transparent'}; display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
+                ${isSel ? '<i data-lucide="check" style="width: 14px; height: 14px; color: white;"></i>' : ''}
+              </div>
+              <div>
+                <div style="font-size:14px;font-weight:700;color:var(--text-main);">${n}</div>
+                <div style="font-size:12px;color:var(--text-muted);">
+                  <b style="color:var(--accent-orange);">${p.cal} ккал</b> • Б:${p.p} Ж:${p.f} У:${p.c}
+                </div>
               </div>
             </div>
-            <div style="display:flex; gap:6px;">
+            <div style="display:flex; gap:6px;" onclick="event.stopPropagation()">
               <button class="copy-chip" onclick="addToDiaryFromDb('${n.replace(/'/g, "\\'")}')" title="Добавить на сегодня">
                 <i data-lucide="plus" style="width:14px;height:14px;"></i>
               </button>
@@ -1881,7 +2275,118 @@
     alert("✅ Успешно добавлено на сегодня!");
   }
 
-  // ================= 9. ГРАФИКИ (ЛИНИЯ ЦЕЛИ) =================
+  // ================= 9. ГРАФИКИ (ЛИНИЯ ЦЕЛИ И ЗАМЕРЫ) =================
+  let measCharts = {};
+
+  function switchStatsTab(tab) {
+    document.getElementById("stats-tab-btn-kbju").classList.toggle("active", tab === 'kbju');
+    document.getElementById("stats-tab-btn-meas").classList.toggle("active", tab === 'meas');
+    document.getElementById("stats-content-kbju").style.display = tab === 'kbju' ? 'block' : 'none';
+    document.getElementById("stats-content-meas").style.display = tab === 'meas' ? 'block' : 'none';
+    
+    if (tab === 'kbju') {
+      renderStats();
+    } else {
+      renderMeasurementsStats();
+    }
+  }
+
+  function renderMeasurementsStats() {
+    const daysRange = parseInt(document.getElementById("stats-meas-period").value) || 7;
+    const allDates = Object.keys(AppState.measurements || {}).sort();
+    
+    // Ограничиваем период
+    const cutoffDate = new Date();
+    cutoffDate.setDate(cutoffDate.getDate() - daysRange);
+    const cutoffStr = cutoffDate.toISOString().split("T")[0];
+    
+    const validDates = allDates.filter(d => d >= cutoffStr);
+    
+    // Helper to draw chart
+    const drawChart = (canvasId, field, color) => {
+      const dataPoints = [];
+      const labels = [];
+      let sum = 0;
+      let count = 0;
+      
+      validDates.forEach(d => {
+        const val = AppState.measurements[d][field];
+        if (val) {
+          dataPoints.push(val);
+          labels.push(d.slice(5).split('-').reverse().join('.'));
+          sum += val;
+          count++;
+        }
+      });
+      
+      const avg = count > 0 ? (sum / count).toFixed(1) : 0;
+      document.getElementById(`meas-${field}-avg`).innerText = count > 0 ? `В среднем: ${avg}` : "Нет данных за этот период";
+      
+      const ctx = document.getElementById(canvasId).getContext("2d");
+      if (measCharts[canvasId]) measCharts[canvasId].destroy();
+      
+      if (count === 0) return; // Пустой график не рисуем
+      
+      const dataLabelsPlugin = {
+        id: 'dataLabels',
+        afterDatasetsDraw: (chart) => {
+          const { ctx } = chart;
+          ctx.save();
+          ctx.font = '600 10px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif';
+          ctx.fillStyle = 'var(--text-main)';
+          ctx.textAlign = 'center';
+          ctx.textBaseline = 'bottom';
+  
+          chart.data.datasets.forEach((dataset, i) => {
+            const meta = chart.getDatasetMeta(i);
+            meta.data.forEach((element, index) => {
+              const dataString = dataset.data[index].toString();
+              const position = element.tooltipPosition();
+              ctx.fillText(dataString, position.x, position.y - 8);
+            });
+          });
+          ctx.restore();
+        }
+      };
+
+      const maxVal = Math.max(...dataPoints);
+      
+      measCharts[canvasId] = new Chart(ctx, {
+        type: "line",
+        data: {
+          labels: labels,
+          datasets: [{ 
+            data: dataPoints, 
+            borderColor: color, 
+            backgroundColor: color, 
+            tension: 0.3, 
+            borderWidth: 2,
+            pointRadius: 4,
+            pointHoverRadius: 6
+          }]
+        },
+        options: {
+          layout: { padding: { top: 20 } },
+          plugins: { legend: { display: false }, tooltip: { enabled: false } },
+          scales: { 
+            x: { grid: { display: false } }, 
+            y: { beginAtZero: false, suggestedMax: maxVal + (maxVal * 0.05) } 
+          }
+        },
+        plugins: [dataLabelsPlugin]
+      });
+    };
+    
+    drawChart("measWeightChart", "weight", "#8B5CF6");
+    drawChart("measShouldersChart", "shoulders", "#3B82F6");
+    drawChart("measChestChart", "chest", "#F59E0B");
+    drawChart("measArmsChart", "arms", "#EF4444");
+    drawChart("measWaistChart", "waist", "#10B981");
+    drawChart("measBellyChart", "belly", "#EC4899");
+    drawChart("measHipsChart", "hips", "#06B6D4");
+    drawChart("measLegsChart", "legs", "#6366F1");
+  }
+
   const targetLinePlugin = {
     id: 'targetLine',
     beforeDraw: chart => {
@@ -2051,6 +2556,47 @@
       } catch(err) { 
         alert("Ошибка файла. Убедитесь, что это файл бэкапа КБЖУ."); 
       } 
+    };
+    reader.readAsText(event.target.files[0]);
+  }
+  
+  // Экспорт только замеров
+  function exportMeasJson() {
+    const measurementsData = AppState.measurements || {};
+    const blob = new Blob([JSON.stringify(measurementsData, null, 2)], { type: "application/json" });
+    const a = document.createElement("a"); 
+    a.href = URL.createObjectURL(blob); 
+    a.download = `kbju_measurements_${currentDate}.json`; 
+    a.click();
+  }
+  
+  function triggerMeasJsonImport() { 
+    document.getElementById("measJsonFileInput").click(); 
+  }
+  
+  function handleMeasJsonFileImport(event) {
+    const reader = new FileReader();
+    reader.onload = ev => { 
+      try { 
+        const importedData = JSON.parse(ev.target.result);
+        if (typeof importedData === "object" && !Array.isArray(importedData)) {
+          AppState.measurements = importedData; 
+          saveState(); 
+          alert("✅ Замеры успешно загружены!"); 
+          
+          // Обновляем UI, если мы находимся на вкладках, где они нужны
+          updateMeasurementsSummary();
+          if (document.getElementById('stats-content-meas').style.display !== 'none') {
+            renderMeasurementsStats();
+          }
+          
+        } else {
+          throw new Error("Неверный формат");
+        }
+      } catch(err) { 
+        alert("Ошибка файла. Убедитесь, что это файл замеров (JSON)."); 
+      }
+      event.target.value = ''; // Сбросить инпут
     };
     reader.readAsText(event.target.files[0]);
   }
