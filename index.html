@@ -785,7 +785,36 @@
       padding: 0;
     }
     .meas-val-input::placeholder { color: var(--border); }
-  </style>
+  
+    .calendar-day { 
+      aspect-ratio: 1; 
+      display: flex; 
+      align-items: center; 
+      justify-content: center; 
+      border-radius: 50%; 
+      cursor: pointer; 
+      font-size: 17px; 
+      color: var(--text-main);
+      transition: all 0.2s ease;
+    }
+    .calendar-day:active { transform: scale(0.9); }
+    .calendar-day.empty { visibility: hidden; pointer-events: none; }
+    .calendar-day.selected { 
+      background: var(--text-main); 
+      color: var(--bg-page); 
+      font-weight: 700; 
+    }
+    .calendar-day.today { 
+      background: rgba(34, 197, 94, 0.15); 
+      color: var(--accent-green); 
+      font-weight: 700; 
+    }
+    .calendar-day.today.selected { 
+      background: var(--text-main); 
+      color: var(--bg-page); 
+    }
+
+</style>
 </head>
 <body>
 
@@ -802,7 +831,7 @@
     <div class="header">
       <div class="date-pill">
         <i data-lucide="chevron-left" style="width:18px; cursor:pointer;" onclick="changeDate(-1)"></i>
-        <span id="currentDateLabel" class="date-label">Сегодня</span>
+        <span id="currentDateLabel" class="date-label" style="cursor: pointer; padding: 0 4px;" onclick="openDatePickerModal()">Сегодня</span>
         <i data-lucide="chevron-right" style="width:18px; cursor:pointer;" onclick="changeDate(1)"></i>
       </div>
       
@@ -891,14 +920,18 @@
     </div>
     
     <!-- Статус дня (Праздник, Тренировка) -->
-    <div class="meal-group" style="padding: 12px 16px; display: flex; justify-content: center; gap: 24px; align-items: center; margin-bottom: 14px;">
-      <label style="display: flex; align-items: center; gap: 8px; font-size: 14px; font-weight: 600; color: var(--text-main); cursor: pointer;">
+    <div class="meal-group" style="padding: 12px 16px; display: flex; justify-content: center; gap: 14px; flex-wrap: wrap; align-items: center; margin-bottom: 14px;">
+      <label style="display: flex; align-items: center; gap: 6px; font-size: 13px; font-weight: 600; color: var(--text-main); cursor: pointer;">
         <input type="checkbox" id="cb-holiday" onchange="toggleDayFlag('isHoliday')" style="width: 16px; height: 16px; accent-color: var(--accent-orange);">
         🥳 Праздник
       </label>
-      <label style="display: flex; align-items: center; gap: 8px; font-size: 14px; font-weight: 600; color: var(--text-main); cursor: pointer;">
-        <input type="checkbox" id="cb-workout" onchange="toggleDayFlag('isWorkout')" style="width: 16px; height: 16px; accent-color: var(--accent-green);">
-        🚴 Тренировка
+      <label style="display: flex; align-items: center; gap: 6px; font-size: 13px; font-weight: 600; color: var(--text-main); cursor: pointer;">
+        <input type="checkbox" id="cb-cycling" onchange="toggleDayFlag('isCycling')" style="width: 16px; height: 16px; accent-color: var(--accent-green);">
+        🚴 Вело.
+      </label>
+      <label style="display: flex; align-items: center; gap: 6px; font-size: 13px; font-weight: 600; color: var(--text-main); cursor: pointer;">
+        <input type="checkbox" id="cb-football" onchange="toggleDayFlag('isFootball')" style="width: 16px; height: 16px; accent-color: #3B82F6;">
+        ⚽️ Футбол
       </label>
     </div>
 
@@ -928,11 +961,11 @@
     
     <div class="calendar-card">
       <div class="calendar-nav">
-        <button class="icon-btn-round" onclick="changeCalMonth(-1)">
+        <button class="icon-btn-round" onclick="changeDatePickerMonth(-1)">
           <i data-lucide="chevron-left" style="width:16px;height:16px;"></i>
         </button>
         <div class="calendar-month-title" id="calMonthTitle">Август 2026</div>
-        <button class="icon-btn-round" onclick="changeCalMonth(1)">
+        <button class="icon-btn-round" onclick="changeDatePickerMonth(1)">
           <i data-lucide="chevron-right" style="width:16px;height:16px;"></i>
         </button>
       </div>
@@ -1052,33 +1085,9 @@
       </div>
 
       <div class="card" style="margin-bottom: 16px;">
-        <div style="font-size:14px; font-weight:700; margin-bottom:4px;">Плечи (см)</div>
-        <div id="meas-shoulders-avg" style="font-size:12px; color:var(--text-muted); margin-bottom:12px;">В среднем: 0</div>
-        <canvas id="measShouldersChart" style="max-height: 180px; width:100%;"></canvas>
-      </div>
-      
-      <div class="card" style="margin-bottom: 16px;">
-        <div style="font-size:14px; font-weight:700; margin-bottom:4px;">Грудь (см)</div>
-        <div id="meas-chest-avg" style="font-size:12px; color:var(--text-muted); margin-bottom:12px;">В среднем: 0</div>
-        <canvas id="measChestChart" style="max-height: 180px; width:100%;"></canvas>
-      </div>
-
-      <div class="card" style="margin-bottom: 16px;">
-        <div style="font-size:14px; font-weight:700; margin-bottom:4px;">Руки (см)</div>
-        <div id="meas-arms-avg" style="font-size:12px; color:var(--text-muted); margin-bottom:12px;">В среднем: 0</div>
-        <canvas id="measArmsChart" style="max-height: 180px; width:100%;"></canvas>
-      </div>
-
-      <div class="card" style="margin-bottom: 16px;">
         <div style="font-size:14px; font-weight:700; margin-bottom:4px;">Талия (см)</div>
         <div id="meas-waist-avg" style="font-size:12px; color:var(--text-muted); margin-bottom:12px;">В среднем: 0</div>
         <canvas id="measWaistChart" style="max-height: 180px; width:100%;"></canvas>
-      </div>
-
-      <div class="card" style="margin-bottom: 16px;">
-        <div style="font-size:14px; font-weight:700; margin-bottom:4px;">Живот (см)</div>
-        <div id="meas-belly-avg" style="font-size:12px; color:var(--text-muted); margin-bottom:12px;">В среднем: 0</div>
-        <canvas id="measBellyChart" style="max-height: 180px; width:100%;"></canvas>
       </div>
 
       <div class="card" style="margin-bottom: 16px;">
@@ -1334,110 +1343,127 @@
 <div class="modal-overlay" id="measurementsModal" style="background: var(--bg-page); padding: 0;">
   <div style="width: 100%; height: 100%; background: var(--bg-page); overflow-y: auto; padding-bottom: 40px; position: relative;">
     
-    <div style="position: sticky; top: 0; background: var(--bg-card); color: var(--text-main); padding: 16px; display: flex; align-items: center; justify-content: space-between; z-index: 10; padding-top: max(16px, env(safe-area-inset-top)); border-bottom: 1px solid var(--border);">
-      <button onclick="closeMeasurementsModal()" style="background:none;border:none;color:var(--text-main);cursor:pointer;padding:4px;">
-        <i data-lucide="chevron-left" style="width:24px;height:24px;"></i>
+    <div style="position: sticky; top: 0; background: var(--bg-card); color: var(--text-main); padding: 16px 12px; display: flex; align-items: center; justify-content: space-between; z-index: 10; padding-top: max(16px, env(safe-area-inset-top)); border-bottom: 1px solid var(--border);">
+      <button onclick="closeMeasurementsModal()" class="date-pill" style="margin: 0; padding: 4px 10px 4px 6px; cursor:pointer; gap:2px; height: 32px; color: var(--text-muted);">
+        <i data-lucide="chevron-left" style="width:18px;height:18px;"></i> 
+        <span style="font-weight:600;font-size:13px;">Назад</span>
       </button>
-      <div style="text-align: center;">
-        <div style="font-size: 18px; font-weight: 700;">Замеры</div>
-        <div id="meas-modal-date" style="font-size: 13px; color: var(--text-muted);">Сегодня</div>
+
+      <div class="date-pill" style="margin: 0; height: 32px; padding: 4px 8px;">
+        <i data-lucide="chevron-left" style="width:18px; cursor:pointer;" onclick="changeMeasDate(-1)"></i>
+        <span id="measModalDateLabel" class="date-label" style="cursor: pointer; padding: 0 4px;" onclick="openDatePickerModal()">Сегодня</span>
+        <i data-lucide="chevron-right" style="width:18px; cursor:pointer;" onclick="changeMeasDate(1)"></i>
       </div>
-      <div style="width:24px;"></div>
+
+      <button onclick="goToMeasCharts()" class="date-pill" style="margin: 0; padding: 4px 6px 4px 10px; cursor:pointer; gap:2px; height: 32px; color: var(--text-muted);" title="Динамика">
+        <span style="font-weight:600;font-size:13px;">Динамика</span>
+        <i data-lucide="chevron-right" style="width:18px;height:18px;"></i>
+      </button>
     </div>
 
     <div style="padding: 24px 16px; position: relative; z-index: 2; max-width: 440px; margin: 0 auto;">
 
-      <div style="display: flex; flex-direction: column; gap: 14px; margin-left: 20px;">
-        
-        <div class="meas-card-input">
-          <div>
-            <div style="font-size: 14px; color: var(--text-main); margin-bottom: 4px;">Вес</div>
-            <div style="display:flex; align-items:center; gap: 4px;">
-              <input type="number" id="inp-meas-weight" class="meas-val-input" placeholder="0" onchange="saveMeasurement('weight')">
-              <span style="font-size: 14px; font-weight: 700; color: var(--text-main);">кг</span>
-            </div>
-          </div>
-          <i data-lucide="chevron-right" style="color:var(--border); width:20px;"></i>
+      <div style="display: flex; flex-direction: column; gap: 10px;">
+        <!-- Заголовки столбцов -->
+        <div style="display: grid; grid-template-columns: 1.2fr 1fr 1fr; gap: 8px; margin-bottom: -4px; padding: 0 16px;">
+          <div style="font-size: 11px; font-weight: 700; color: var(--text-muted); text-transform: uppercase;">Параметр</div>
+          <div style="font-size: 11px; font-weight: 700; color: var(--text-muted); text-transform: uppercase; text-align: center;" id="meas-prev-header-title">Пред.</div>
+          <div style="font-size: 11px; font-weight: 700; color: var(--text-muted); text-transform: uppercase; text-align: right;">Разница</div>
         </div>
 
-        <div class="meas-card-input">
+        <div class="meas-card-input" style="display: grid; grid-template-columns: 1.2fr 1fr 1fr; align-items: center; gap: 8px; padding: 12px 16px;">
           <div>
-            <div style="font-size: 14px; color: var(--text-main); margin-bottom: 4px;">Плечи</div>
-            <div style="display:flex; align-items:center; gap: 4px;">
-              <input type="number" id="inp-meas-shoulders" class="meas-val-input" placeholder="0" onchange="saveMeasurement('shoulders')">
-              <span style="font-size: 14px; font-weight: 700; color: var(--text-main);">см</span>
+            <div style="font-size: 14px; color: var(--text-main); margin-bottom: 2px; font-weight: 600;">Вес</div>
+            <div style="display:flex; align-items:center; gap: 2px;">
+              <input type="number" id="inp-meas-weight" class="meas-val-input" placeholder="0" oninput="updateMeasDiffs()" onchange="saveMeasurement('weight')" style="width: 50px; font-size: 15px; font-weight: 700; padding: 0;">
+              <span style="font-size: 13px; font-weight: 600; color: var(--text-muted);">кг</span>
             </div>
           </div>
-          <i data-lucide="chevron-right" style="color:var(--border); width:20px;"></i>
+          <div style="text-align: center;">
+            <div id="meas-prev-weight" style="font-size: 15px; font-weight: 700; color: var(--text-main);">-</div>
+          </div>
+          <div style="text-align: right;">
+            <div id="meas-diff-weight" style="font-size: 15px; font-weight: 700; color: var(--text-muted);">-</div>
+          </div>
         </div>
 
-        <div class="meas-card-input">
+        <div class="meas-card-input" style="display: grid; grid-template-columns: 1.2fr 1fr 1fr; align-items: center; gap: 8px; padding: 12px 16px;">
           <div>
-            <div style="font-size: 14px; color: var(--text-main); margin-bottom: 4px;">Грудь</div>
-            <div style="display:flex; align-items:center; gap: 4px;">
-              <input type="number" id="inp-meas-chest" class="meas-val-input" placeholder="0" onchange="saveMeasurement('chest')">
-              <span style="font-size: 14px; font-weight: 700; color: var(--text-main);">см</span>
+            <div style="font-size: 14px; color: var(--text-main); margin-bottom: 2px; font-weight: 600;">Талия</div>
+            <div style="display:flex; align-items:center; gap: 2px;">
+              <input type="number" id="inp-meas-waist" class="meas-val-input" placeholder="0" oninput="updateMeasDiffs()" onchange="saveMeasurement('waist')" style="width: 50px; font-size: 15px; font-weight: 700; padding: 0;">
+              <span style="font-size: 13px; font-weight: 600; color: var(--text-muted);">см</span>
             </div>
           </div>
-          <i data-lucide="chevron-right" style="color:var(--border); width:20px;"></i>
+          <div style="text-align: center;">
+            <div id="meas-prev-waist" style="font-size: 15px; font-weight: 700; color: var(--text-main);">-</div>
+          </div>
+          <div style="text-align: right;">
+            <div id="meas-diff-waist" style="font-size: 15px; font-weight: 700; color: var(--text-muted);">-</div>
+          </div>
         </div>
 
-        <div class="meas-card-input">
+        <div class="meas-card-input" style="display: grid; grid-template-columns: 1.2fr 1fr 1fr; align-items: center; gap: 8px; padding: 12px 16px;">
           <div>
-            <div style="font-size: 14px; color: var(--text-main); margin-bottom: 4px;">Руки</div>
-            <div style="display:flex; align-items:center; gap: 4px;">
-              <input type="number" id="inp-meas-arms" class="meas-val-input" placeholder="0" onchange="saveMeasurement('arms')">
-              <span style="font-size: 14px; font-weight: 700; color: var(--text-main);">см</span>
+            <div style="font-size: 14px; color: var(--text-main); margin-bottom: 2px; font-weight: 600;">Бёдра</div>
+            <div style="display:flex; align-items:center; gap: 2px;">
+              <input type="number" id="inp-meas-hips" class="meas-val-input" placeholder="0" oninput="updateMeasDiffs()" onchange="saveMeasurement('hips')" style="width: 50px; font-size: 15px; font-weight: 700; padding: 0;">
+              <span style="font-size: 13px; font-weight: 600; color: var(--text-muted);">см</span>
             </div>
           </div>
-          <i data-lucide="chevron-right" style="color:var(--border); width:20px;"></i>
+          <div style="text-align: center;">
+            <div id="meas-prev-hips" style="font-size: 15px; font-weight: 700; color: var(--text-main);">-</div>
+          </div>
+          <div style="text-align: right;">
+            <div id="meas-diff-hips" style="font-size: 15px; font-weight: 700; color: var(--text-muted);">-</div>
+          </div>
         </div>
 
-        <div class="meas-card-input">
+        <div class="meas-card-input" style="display: grid; grid-template-columns: 1.2fr 1fr 1fr; align-items: center; gap: 8px; padding: 12px 16px;">
           <div>
-            <div style="font-size: 14px; color: var(--text-main); margin-bottom: 4px;">Талия</div>
-            <div style="display:flex; align-items:center; gap: 4px;">
-              <input type="number" id="inp-meas-waist" class="meas-val-input" placeholder="0" onchange="saveMeasurement('waist')">
-              <span style="font-size: 14px; font-weight: 700; color: var(--text-main);">см</span>
+            <div style="font-size: 14px; color: var(--text-main); margin-bottom: 2px; font-weight: 600;">Ноги</div>
+            <div style="display:flex; align-items:center; gap: 2px;">
+              <input type="number" id="inp-meas-legs" class="meas-val-input" placeholder="0" oninput="updateMeasDiffs()" onchange="saveMeasurement('legs')" style="width: 50px; font-size: 15px; font-weight: 700; padding: 0;">
+              <span style="font-size: 13px; font-weight: 600; color: var(--text-muted);">см</span>
             </div>
           </div>
-          <i data-lucide="chevron-right" style="color:var(--border); width:20px;"></i>
-        </div>
-
-        <div class="meas-card-input">
-          <div>
-            <div style="font-size: 14px; color: var(--text-main); margin-bottom: 4px;">Живот</div>
-            <div style="display:flex; align-items:center; gap: 4px;">
-              <input type="number" id="inp-meas-belly" class="meas-val-input" placeholder="0" onchange="saveMeasurement('belly')">
-              <span style="font-size: 14px; font-weight: 700; color: var(--text-main);">см</span>
-            </div>
+          <div style="text-align: center;">
+            <div id="meas-prev-legs" style="font-size: 15px; font-weight: 700; color: var(--text-main);">-</div>
           </div>
-          <i data-lucide="chevron-right" style="color:var(--border); width:20px;"></i>
-        </div>
-
-        <div class="meas-card-input">
-          <div>
-            <div style="font-size: 14px; color: var(--text-main); margin-bottom: 4px;">Бёдра</div>
-            <div style="display:flex; align-items:center; gap: 4px;">
-              <input type="number" id="inp-meas-hips" class="meas-val-input" placeholder="0" onchange="saveMeasurement('hips')">
-              <span style="font-size: 14px; font-weight: 700; color: var(--text-main);">см</span>
-            </div>
+          <div style="text-align: right;">
+            <div id="meas-diff-legs" style="font-size: 15px; font-weight: 700; color: var(--text-muted);">-</div>
           </div>
-          <i data-lucide="chevron-right" style="color:var(--border); width:20px;"></i>
         </div>
-
-        <div class="meas-card-input">
-          <div>
-            <div style="font-size: 14px; color: var(--text-main); margin-bottom: 4px;">Ноги</div>
-            <div style="display:flex; align-items:center; gap: 4px;">
-              <input type="number" id="inp-meas-legs" class="meas-val-input" placeholder="0" onchange="saveMeasurement('legs')">
-              <span style="font-size: 14px; font-weight: 700; color: var(--text-main);">см</span>
-            </div>
-          </div>
-          <i data-lucide="chevron-right" style="color:var(--border); width:20px;"></i>
-        </div>
-        
       </div>
+    </div>
+  </div>
+</div>
+
+<!-- 6. Модалка: Выбор даты -->
+<div class="modal-overlay" id="datePickerModal" onclick="if(event.target===this) closeDatePickerModal()">
+  <div class="modal-sheet" style="padding: 24px; border-radius: 28px 28px 0 0;">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px;">
+      <div id="calTitle" style="font-size: 19px; font-weight: 700; color: var(--text-main); display: flex; align-items: center; gap: 4px;">
+        Июль 2026 г. <i data-lucide="chevron-right" style="width:18px;height:18px;color:#007bff; margin-top:2px;"></i>
+      </div>
+      <div style="display: flex; gap: 20px;">
+        <i data-lucide="chevron-left" style="width:22px;height:22px;cursor:pointer;color:var(--text-main);" onclick="changeDatePickerMonth(-1)"></i>
+        <i data-lucide="chevron-right" style="width:22px;height:22px;cursor:pointer;color:var(--text-main);" onclick="changeDatePickerMonth(1)"></i>
+      </div>
+    </div>
+    
+    <div style="display: grid; grid-template-columns: repeat(7, 1fr); text-align: center; font-size: 12px; font-weight: 700; color: var(--text-muted); margin-bottom: 12px;">
+      <div>ПН</div><div>ВТ</div><div>СР</div><div>ЧТ</div><div>ПТ</div><div>СБ</div><div>ВС</div>
+    </div>
+    <div id="calDays" style="display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px; row-gap: 8px;">
+      <!-- Days inserted via JS -->
+    </div>
+    
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 32px;">
+      <button onclick="resetDatePickerDate()" style="background: var(--bg-subtle); color: var(--text-main); border: none; padding: 14px 24px; border-radius: 24px; font-weight: 600; font-size: 16px; cursor: pointer;">Сбросить</button>
+      <button onclick="applyDatePicker()" style="background: #007bff; color: white; border: none; width: 52px; height: 52px; border-radius: 50%; display: flex; align-items: center; justify-content: center; cursor: pointer; box-shadow: 0 4px 14px rgba(0,123,255,0.3);">
+        <i data-lucide="check" style="width:24px;height:24px;"></i>
+      </button>
     </div>
   </div>
 </div>
@@ -1547,7 +1573,91 @@
   }
 
   // ================= 3. ДНЕВНИК И БЛЮДА (РЕНДЕР) =================
-  function changeDate(daysToAdd) { 
+  
+  let calViewDate = new Date();
+  let calSelectedDate = "";
+
+  function openDatePickerModal() {
+    calSelectedDate = currentDate;
+    const parts = currentDate.split("-");
+    calViewDate = new Date(parts[0], parts[1] - 1, parts[2]);
+    renderDatePickerCalendar();
+    document.getElementById("datePickerModal").classList.add("open");
+  }
+
+  function closeDatePickerModal() {
+    document.getElementById("datePickerModal").classList.remove("open");
+  }
+
+  function renderDatePickerCalendar() {
+    const year = calViewDate.getFullYear();
+    const month = calViewDate.getMonth();
+    
+    const monthNames = ["Январь", "Февраль", "Март", "Апрель", "Май", "Июнь", "Июль", "Август", "Сентябрь", "Октябрь", "Ноябрь", "Декабрь"];
+    document.getElementById("calTitle").innerHTML = monthNames[month] + " " + year + " г. <i data-lucide='chevron-right' style='width:18px;height:18px;color:#007bff; margin-top:2px;'></i>";
+
+    // Re-initialize lucide icons inside title
+    lucide.createIcons();
+
+    const firstDay = new Date(year, month, 1).getDay();
+    let startOffset = firstDay === 0 ? 6 : firstDay - 1; // Mon = 0, Sun = 6
+    
+    const daysInMonth = new Date(year, month + 1, 0).getDate();
+    
+    let html = "";
+    for (let i = 0; i < startOffset; i++) {
+      html += '<div class="calendar-day empty"></div>';
+    }
+    
+    const today = new Date();
+    const todayStr = [today.getFullYear(), String(today.getMonth()+1).padStart(2,'0'), String(today.getDate()).padStart(2,'0')].join('-');
+
+    for (let i = 1; i <= daysInMonth; i++) {
+      // Local date string
+      const dStr = [year, String(month+1).padStart(2,'0'), String(i).padStart(2,'0')].join('-');
+      
+      let cls = "calendar-day";
+      if (dStr === calSelectedDate) cls += " selected";
+      if (dStr === todayStr) cls += " today";
+      
+      html += '<div class="' + cls + '" onclick="selectDatePickerDate(\'' + dStr + '\')">' + i + '</div>';
+    }
+    document.getElementById("calDays").innerHTML = html;
+  }
+
+  function selectDatePickerDate(dStr) {
+    calSelectedDate = dStr;
+    renderDatePickerCalendar();
+  }
+
+  function changeDatePickerMonth(dir) {
+    calViewDate.setMonth(calViewDate.getMonth() + dir);
+    renderDatePickerCalendar();
+  }
+  
+  function resetDatePickerDate() {
+    const today = new Date();
+    const dStr = [today.getFullYear(), String(today.getMonth()+1).padStart(2,'0'), String(today.getDate()).padStart(2,'0')].join('-');
+    calSelectedDate = dStr;
+    calViewDate = new Date();
+    renderDatePickerCalendar();
+  }
+
+  function applyDatePicker() {
+    if (calSelectedDate) {
+      currentDate = calSelectedDate;
+      renderDay();
+      updateMeasurementsSummary();
+      
+      const measModal = document.getElementById("measurementsModal");
+      if (measModal && measModal.classList.contains("open")) {
+         renderMeasModal();
+      }
+      
+      closeDatePickerModal();
+    }
+  }
+function changeDate(daysToAdd) { 
     let d = new Date(currentDate); 
     d.setDate(d.getDate() + daysToAdd); 
     currentDate = d.toISOString().split("T")[0]; 
@@ -1605,8 +1715,10 @@
     
     if (flag === 'isHoliday') {
       AppState.days[currentDate].isHoliday = document.getElementById("cb-holiday").checked;
-    } else if (flag === 'isWorkout') {
-      AppState.days[currentDate].isWorkout = document.getElementById("cb-workout").checked;
+    } else if (flag === 'isCycling') {
+      AppState.days[currentDate].isCycling = document.getElementById("cb-cycling").checked;
+    } else if (flag === 'isFootball') {
+      AppState.days[currentDate].isFootball = document.getElementById("cb-football").checked;
     }
     saveState();
     renderCalendar(); // Опционально обновляем календарь, если он отрендерен
@@ -1620,7 +1732,8 @@
     };
     
     document.getElementById("cb-holiday").checked = !!dayData.isHoliday;
-    document.getElementById("cb-workout").checked = !!dayData.isWorkout;
+    document.getElementById("cb-cycling").checked = !!dayData.isCycling;
+    document.getElementById("cb-football").checked = !!dayData.isFootball;
 
     
     const d = new Date(currentDate);
@@ -1737,22 +1850,100 @@
   }
 
   // ================= 3.5 ЗАМЕРЫ И ВЕС =================
+  
+  function goToMeasCharts() {
+    closeMeasurementsModal();
+    switchTab('stats');
+    switchStatsTab('meas');
+  }
+
+  function getLastMeasurementDate(field, beforeDate) {
+    const dates = Object.keys(AppState.measurements || {}).sort().reverse();
+    for (const d of dates) {
+      if (d < beforeDate && AppState.measurements[d][field] != null) {
+        return d;
+      }
+    }
+    return null;
+  }
+  function getLastMeasurement(field, beforeDate) {
+    const dates = Object.keys(AppState.measurements || {}).sort().reverse();
+    for (const d of dates) {
+      if (d < beforeDate && AppState.measurements[d][field] != null) {
+        return AppState.measurements[d][field];
+      }
+    }
+    return null;
+  }
+
+  function updateMeasDiffs() {
+    const fields = ['weight', 'waist', 'hips', 'legs'];
+    let latestPrevDateStr = null;
+    let latestPrevDateFormatted = "Пред.";
+    fields.forEach(f => {
+      const prevDate = getLastMeasurementDate(f, currentDate);
+      if (prevDate && (!latestPrevDateStr || prevDate > latestPrevDateStr)) {
+        latestPrevDateStr = prevDate;
+      }
+    });
+    if (latestPrevDateStr) {
+      const d = new Date(latestPrevDateStr);
+      const mNames = ["янв","фев","мар","апр","мая","июн","июл","авг","сен","окт","ноя","дек"];
+      latestPrevDateFormatted = `Пред. (${d.getDate()} ${mNames[d.getMonth()]})`;
+    }
+    document.getElementById("meas-prev-header-title").innerText = latestPrevDateFormatted;
+
+    fields.forEach(f => {
+      const inp = document.getElementById(`inp-meas-${f}`);
+      if (!inp) return;
+      const current = parseFloat(inp.value);
+      const prev = getLastMeasurement(f, currentDate);
+      
+      const prevEl = document.getElementById(`meas-prev-${f}`);
+      const diffEl = document.getElementById(`meas-diff-${f}`);
+      
+      if (prev !== null) {
+        prevEl.innerText = prev;
+        if (!isNaN(current)) {
+          const diff = current - prev;
+          let diffStr = diff.toFixed(1);
+          if (diff > 0) diffStr = "+" + diffStr;
+          
+          diffEl.innerText = diffStr;
+          if (diff > 0) diffEl.style.color = "var(--accent-orange)";
+          else if (diff < 0) diffEl.style.color = "var(--accent-green)";
+          else diffEl.style.color = "var(--text-muted)";
+        } else {
+          diffEl.innerText = "-";
+          diffEl.style.color = "var(--text-muted)";
+        }
+      } else {
+        prevEl.innerText = "-";
+        diffEl.innerText = "-";
+        diffEl.style.color = "var(--text-muted)";
+      }
+    });
+  }
+
+  
+  function changeMeasDate(days) {
+    changeDate(days); // updates currentDate and calls renderDay
+    openMeasurementsModal();
+  }
+
   function openMeasurementsModal() {
     const d = new Date(currentDate);
     const months = ["января","февраля","марта","апреля","мая","июня","июля","августа","сентября","октября","ноября","декабря"];
     const isToday = new Date().toISOString().split("T")[0] === currentDate;
-    document.getElementById("meas-modal-date").innerText = isToday ? "Сегодня, " + d.getDate() + " " + months[d.getMonth()] : d.getDate() + " " + months[d.getMonth()];
+    document.getElementById("measModalDateLabel").innerText = isToday ? "Сегодня" : `${d.getDate()} ${months[d.getMonth()]}`;
 
     const meas = AppState.measurements[currentDate] || {};
     document.getElementById("inp-meas-weight").value = meas.weight || '';
-    document.getElementById("inp-meas-shoulders").value = meas.shoulders || '';
-    document.getElementById("inp-meas-chest").value = meas.chest || '';
-    document.getElementById("inp-meas-arms").value = meas.arms || '';
-    document.getElementById("inp-meas-waist").value = meas.waist || '';
-    document.getElementById("inp-meas-belly").value = meas.belly || '';
-    document.getElementById("inp-meas-hips").value = meas.hips || '';
-    document.getElementById("inp-meas-legs").value = meas.legs || '';
+    if(document.getElementById("inp-meas-waist")) document.getElementById("inp-meas-waist").value = meas.waist || '';
+    if(document.getElementById("inp-meas-hips")) document.getElementById("inp-meas-hips").value = meas.hips || '';
+    if(document.getElementById("inp-meas-legs")) document.getElementById("inp-meas-legs").value = meas.legs || '';
 
+    updateMeasDiffs();
     document.getElementById("measurementsModal").classList.add("open");
   }
 
@@ -1768,6 +1959,7 @@
     AppState.measurements[currentDate][field] = isNaN(val) ? null : val;
     saveState();
     renderDay(); // чтобы обновилась плашка
+    updateMeasDiffs();
   }
 
   // ================= 4. РУЧНОЙ ВВОД (МОДАЛКА) =================
@@ -2058,7 +2250,8 @@
         
         let emojiHtml = "";
         if (AppState.days[dStr].isHoliday) emojiHtml += "🥳";
-        if (AppState.days[dStr].isWorkout) emojiHtml += "🚴";
+        if (AppState.days[dStr].isCycling) emojiHtml += "🚴";
+        if (AppState.days[dStr].isFootball) emojiHtml += "⚽️";
         
         if (emojiHtml) {
           const emojiContainer = document.createElement("div");
@@ -2358,31 +2551,49 @@
           datasets: [{ 
             data: dataPoints, 
             borderColor: color, 
-            backgroundColor: color, 
-            tension: 0.3, 
+            backgroundColor: 'transparent',
+            pointBackgroundColor: '#FFFFFF',
+            pointBorderColor: color,
+            pointBorderWidth: 2,
+            tension: 0, 
             borderWidth: 2,
             pointRadius: 4,
             pointHoverRadius: 6
           }]
         },
         options: {
-          layout: { padding: { top: 20 } },
-          plugins: { legend: { display: false }, tooltip: { enabled: false } },
+          layout: { padding: { top: 20, right: 10 } },
+          plugins: { legend: { display: false }, tooltip: { enabled: true, backgroundColor: 'rgba(0,0,0,0.8)', titleFont: {size: 11}, bodyFont: {size: 13, weight: 'bold'} } },
           scales: { 
-            x: { grid: { display: false } }, 
-            y: { beginAtZero: false, suggestedMax: maxVal + (maxVal * 0.05) } 
+            x: { 
+              grid: { 
+                display: true, 
+                color: document.documentElement.getAttribute('data-theme') === 'dark' ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.05)',
+                drawBorder: false,
+                tickLength: 0,
+                borderDash: [5, 5]
+              },
+              ticks: { color: 'var(--text-muted)' }
+            }, 
+            y: { 
+              position: 'right',
+              grid: { 
+                display: true, 
+                color: document.documentElement.getAttribute('data-theme') === 'dark' ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.05)',
+                drawBorder: false,
+                tickLength: 0,
+              },
+              ticks: { color: 'var(--text-muted)' },
+              beginAtZero: false, 
+              suggestedMax: maxVal + (maxVal * 0.05) 
+            } 
           }
-        },
-        plugins: [dataLabelsPlugin]
+        }
       });
     };
     
-    drawChart("measWeightChart", "weight", "#8B5CF6");
-    drawChart("measShouldersChart", "shoulders", "#3B82F6");
-    drawChart("measChestChart", "chest", "#F59E0B");
-    drawChart("measArmsChart", "arms", "#EF4444");
+    drawChart("measWeightChart", "weight", "#C846DC");
     drawChart("measWaistChart", "waist", "#10B981");
-    drawChart("measBellyChart", "belly", "#EC4899");
     drawChart("measHipsChart", "hips", "#06B6D4");
     drawChart("measLegsChart", "legs", "#6366F1");
   }
@@ -2693,4 +2904,3 @@
 </script>
 </body>
 </html>
-
