@@ -922,19 +922,7 @@
     </div>
     
     <!-- Статус дня (Праздник, Тренировка) -->
-    <div class="meal-group" style="padding: 12px 16px; display: flex; justify-content: center; gap: 14px; flex-wrap: wrap; align-items: center; margin-bottom: 14px;">
-      <label style="display: flex; align-items: center; gap: 6px; font-size: 13px; font-weight: 600; color: var(--text-main); cursor: pointer;">
-        <input type="checkbox" id="cb-holiday" onchange="toggleDayFlag('isHoliday')" style="width: 16px; height: 16px; accent-color: var(--accent-orange);">
-        🥳 Праздник
-      </label>
-      <label style="display: flex; align-items: center; gap: 6px; font-size: 13px; font-weight: 600; color: var(--text-main); cursor: pointer;">
-        <input type="checkbox" id="cb-cycling" onchange="toggleDayFlag('isCycling')" style="width: 16px; height: 16px; accent-color: var(--accent-green);">
-        🚴 Вело
-      </label>
-      <label style="display: flex; align-items: center; gap: 6px; font-size: 13px; font-weight: 600; color: var(--text-main); cursor: pointer;">
-        <input type="checkbox" id="cb-football" onchange="toggleDayFlag('isFootball')" style="width: 16px; height: 16px; accent-color: #3B82F6;">
-        ⚽️ Футбол
-      </label>
+    <div id="diary-flags-container" class="meal-group" style="padding: 14px 16px; display: flex; justify-content: center; gap: 16px; flex-wrap: wrap; margin-bottom: 14px;">
     </div>
 
     <!-- Блок Вес и Замеры -->
@@ -1136,6 +1124,9 @@
 
       <button class="btn-primary" onclick="saveManualNorm()">Сохранить настройки</button>
       
+      
+
+
       <!-- Информационная плашка -->
       <div class="norm-info-box" style="margin-top: 14px;">
         <div style="display: flex; justify-content: space-between; margin-bottom: 6px;">
@@ -1206,6 +1197,17 @@
       <div style="display:flex; gap:10px; align-items:center; margin-top: 10px;">
         <input type="time" id="backup-time-input" class="form-input" style="flex:1;">
         <button class="btn-primary" style="margin:0; width:auto; padding: 10px 16px;" onclick="saveNotificationSettings()">Вкл</button>
+      </div>
+    </div>
+
+    <!-- Настройка активностей (галочек) -->
+    <div class="card" style="margin-top: 16px;">
+      <h3 style="font-size: 15px; font-weight: 800; margin-bottom: 6px;">Отображаемые статусы</h3>
+      <p style="font-size: 11px; color: var(--text-muted); margin-bottom: 12px;">
+        Выберите, какие галочки активностей показывать на главном экране дневника.
+      </p>
+      <div id="settings-flags-container" style="display: flex; flex-direction: column; gap: 10px;">
+        <!-- Checkboxes injected here by JS -->
       </div>
     </div>
     
@@ -1471,6 +1473,16 @@
 </div>
 <script>
   // ================= 1. ИНИЦИАЛИЗАЦИЯ И ХРАНИЛИЩЕ =================
+  
+  const DEFAULT_FLAGS = [
+  { id: 'isHoliday', label: '🥳 Праздник', color: 'var(--accent-orange)' },
+  { id: 'isBand', label: '🌸 Резинка', color: '#EC4899' },
+  { id: 'isCycling', label: '🚴 Вело', color: 'var(--accent-green)' },
+  { id: 'isFootball', label: '⚽️ Футбол', color: '#3B82F6' },
+  { id: 'isRun', label: '🏃 Бег', color: '#F59E0B' },
+  { id: 'isSki', label: '⛷️ Лыжи', color: '#06B6D4' }
+];
+
   const DEFAULT_STATE = { 
     theme: "light",
     currentDate: new Date().toISOString().split("T")[0], 
@@ -1478,7 +1490,9 @@
       mode: "manual",
       tdee: 2200, 
       defaultTargetCal: 1900, 
-      defaultTargetPro: 130 
+      defaultTargetPro: 130,
+      activeFlags: ['isHoliday', 'isBand', 'isCycling', 'isFootball', 'isRun', 'isSki'],
+      customFlags: [...DEFAULT_FLAGS]
     }, 
     settings: { backupTime: "", lastNotified: "" },
     days: {}, 
@@ -1493,6 +1507,8 @@
     if (!AppState.userProfile) AppState.userProfile = DEFAULT_STATE.userProfile;
     if (!AppState.userProfile.tdee) AppState.userProfile.tdee = 2200;
     if (!AppState.measurements) AppState.measurements = {};
+    if (!AppState.userProfile.activeFlags) AppState.userProfile.activeFlags = ['isHoliday', 'isBand', 'isCycling', 'isFootball', 'isRun', 'isSki'];
+    if (!AppState.userProfile.customFlags) AppState.userProfile.customFlags = [...DEFAULT_FLAGS];
   } catch (e) { 
     AppState = DEFAULT_STATE; 
   }
@@ -1706,7 +1722,7 @@ function changeDate(daysToAdd) {
     return motivationalQuotes[2];
   }
 
-  function toggleDayFlag(flag) {
+  function toggleDayFlag(flag, isChecked) {
     if (!AppState.days[currentDate]) {
       AppState.days[currentDate] = { 
         date: currentDate, 
@@ -1714,14 +1730,7 @@ function changeDate(daysToAdd) {
         meals: [] 
       };
     }
-    
-    if (flag === 'isHoliday') {
-      AppState.days[currentDate].isHoliday = document.getElementById("cb-holiday").checked;
-    } else if (flag === 'isCycling') {
-      AppState.days[currentDate].isCycling = document.getElementById("cb-cycling").checked;
-    } else if (flag === 'isFootball') {
-      AppState.days[currentDate].isFootball = document.getElementById("cb-football").checked;
-    }
+    AppState.days[currentDate][flag] = isChecked;
     saveState();
     renderCalendar(); // Опционально обновляем календарь, если он отрендерен
   }
@@ -1733,9 +1742,28 @@ function changeDate(daysToAdd) {
       meals: [] 
     };
     
-    document.getElementById("cb-holiday").checked = !!dayData.isHoliday;
-    document.getElementById("cb-cycling").checked = !!dayData.isCycling;
-    document.getElementById("cb-football").checked = !!dayData.isFootball;
+    const flagsContainer = document.getElementById('diary-flags-container');
+    if (flagsContainer) {
+      flagsContainer.innerHTML = '';
+      const activeFlags = AppState.userProfile.activeFlags || [];
+      if (activeFlags.length > 0) {
+        flagsContainer.style.display = 'flex';
+        activeFlags.forEach(flagId => {
+          const flagMeta = (AppState.userProfile.customFlags || []).find(f => f.id === flagId);
+          if (flagMeta) {
+            const isChecked = !!dayData[flagId];
+            flagsContainer.innerHTML += `
+              <label style="display: flex; align-items: center; gap: 6px; font-size: 14px; font-weight: 600; color: var(--text-main); cursor: pointer;">
+                <input type="checkbox" onchange="toggleDayFlag('${flagId}', this.checked)" ${isChecked ? 'checked' : ''} style="width: 18px; height: 18px; accent-color: ${flagMeta.color};">
+                ${flagMeta.label}
+              </label>
+            `;
+          }
+        });
+      } else {
+        flagsContainer.style.display = 'none';
+      }
+    }
 
     
     const d = new Date(currentDate);
@@ -2251,9 +2279,13 @@ function changeDate(daysToAdd) {
         }
         
         let emojiHtml = "";
-        if (AppState.days[dStr].isHoliday) emojiHtml += "🥳";
-        if (AppState.days[dStr].isCycling) emojiHtml += "🚴";
-        if (AppState.days[dStr].isFootball) emojiHtml += "⚽️";
+        const customFlags = AppState.userProfile.customFlags || [];
+        customFlags.forEach(flag => {
+          if (AppState.days[dStr][flag.id]) {
+            const parts = flag.label.split(' ');
+            emojiHtml += parts[0];
+          }
+        });
         
         if (emojiHtml) {
           const emojiContainer = document.createElement("div");
@@ -2663,6 +2695,69 @@ function changeDate(daysToAdd) {
   }
 
   // ================= 10. ПРОФИЛЬ И НОРМА =================
+
+  
+  function addCustomFlag() {
+    const emojiInput = document.getElementById('new-flag-emoji').value.trim();
+    const nameInput = document.getElementById('new-flag-name').value.trim();
+    const colorInput = document.getElementById('new-flag-color').value;
+    
+    if (!emojiInput || !nameInput) {
+      alert("Пожалуйста, введите эмодзи и название активности.");
+      return;
+    }
+    
+    // Generate a unique ID
+    const newId = 'custom_' + Date.now().toString();
+    const newLabel = emojiInput + ' ' + nameInput;
+    
+    if (!AppState.userProfile.customFlags) {
+      AppState.userProfile.customFlags = [];
+    }
+    
+    AppState.userProfile.customFlags.push({
+      id: newId,
+      label: newLabel,
+      color: colorInput
+    });
+    
+    // Automatically enable it
+    if (!AppState.userProfile.activeFlags) AppState.userProfile.activeFlags = [];
+    AppState.userProfile.activeFlags.push(newId);
+    
+    saveState();
+    updateProfileUI();
+    if (window.renderDay) renderDay();
+  }
+
+  function deleteCustomFlag(id) {
+    if (confirm("Точно удалить эту активность? Она также пропадет из прошлых дней.")) {
+      AppState.userProfile.customFlags = AppState.userProfile.customFlags.filter(f => f.id !== id);
+      
+      // Remove from active flags
+      if (AppState.userProfile.activeFlags) {
+        AppState.userProfile.activeFlags = AppState.userProfile.activeFlags.filter(fId => fId !== id);
+      }
+      
+      saveState();
+      updateProfileUI();
+      if (window.renderDay) renderDay();
+      if (window.renderCalendar) renderCalendar();
+    }
+  }
+
+  function toggleSettingsFlag(flagId) {
+    if (!AppState.userProfile.activeFlags) AppState.userProfile.activeFlags = [];
+    const idx = AppState.userProfile.activeFlags.indexOf(flagId);
+    if (idx > -1) {
+      AppState.userProfile.activeFlags.splice(idx, 1);
+    } else {
+      AppState.userProfile.activeFlags.push(flagId);
+    }
+    saveState();
+    if (window.renderDay) renderDay();
+  }
+
   function saveManualNorm() {
     const tdee = Number(document.getElementById("manual-tdee").value) || AppState.userProfile.tdee;
     const targetCal = Number(document.getElementById("manual-cal-target").value) || AppState.userProfile.defaultTargetCal;
@@ -2695,9 +2790,47 @@ function changeDate(daysToAdd) {
     document.getElementById("manual-cal-target").value = p.defaultTargetCal;
     document.getElementById("manual-pro-target").value = p.defaultTargetPro;
     
+    
     if (AppState.settings && AppState.settings.backupTime) {
       document.getElementById("backup-time-input").value = AppState.settings.backupTime;
     }
+    
+    // Отрисовка настроек статусов
+    const flagsContainer = document.getElementById('settings-flags-container');
+    if (flagsContainer) {
+      flagsContainer.innerHTML = '';
+      const customFlags = AppState.userProfile.customFlags || [];
+      customFlags.forEach(flag => {
+        const isChecked = AppState.userProfile.activeFlags.includes(flag.id);
+        flagsContainer.innerHTML += `
+          <div style="display: flex; justify-content: space-between; align-items: center; background: var(--bg-main); padding: 8px 12px; border-radius: 10px; border: 1px solid var(--border-color);">
+            <label style="display: flex; align-items: center; gap: 10px; font-size: 14px; font-weight: 600; color: var(--text-main); cursor: pointer; flex: 1; margin: 0;">
+              <input type="checkbox" onchange="toggleSettingsFlag('${flag.id}')" ${isChecked ? 'checked' : ''} style="width: 18px; height: 18px; accent-color: ${flag.color};">
+              ${flag.label}
+            </label>
+            <button onclick="deleteCustomFlag('${flag.id}')" style="background: none; border: none; color: #EF4444; cursor: pointer; padding: 4px; display: flex; align-items: center; justify-content: center;">
+              <i data-lucide="trash-2" style="width: 16px; height: 16px;"></i>
+            </button>
+          </div>
+        `;
+      });
+      
+      // Form for adding new flags
+      flagsContainer.innerHTML += `
+        <div style="display: flex; gap: 8px; margin-top: 8px; align-items: center; background: var(--bg-main); padding: 8px; border-radius: 10px; border: 1px solid var(--border-color);">
+          <input type="text" id="new-flag-emoji" placeholder="🏃‍♂️" style="width: 44px; text-align: center; font-size: 16px; border: 1px solid var(--border-color); border-radius: 8px; background: var(--bg-subtle); color: var(--text-main); padding: 6px;">
+          <input type="text" id="new-flag-name" placeholder="Название (Бег)" style="flex: 1; font-size: 14px; border: 1px solid var(--border-color); border-radius: 8px; padding: 6px 10px; background: var(--bg-subtle); color: var(--text-main); min-width: 0;">
+          <input type="color" id="new-flag-color" value="#3B82F6" style="width: 34px; height: 34px; border: none; border-radius: 8px; cursor: pointer; background: transparent; padding: 0;">
+          <button onclick="addCustomFlag()" style="background: var(--accent-blue); color: white; border: none; padding: 6px 12px; border-radius: 8px; font-weight: 600; cursor: pointer;">
+            +
+          </button>
+        </div>
+      `;
+      
+      // Re-create lucide icons for trash bins
+      setTimeout(() => lucide.createIcons(), 0);
+    }
+
   }
 
   // ================= 11. ЭКСПОРТ (ТЕКСТ, JSON, EXCEL) =================
