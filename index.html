@@ -814,6 +814,8 @@
       color: var(--bg-page); 
     }
 
+  .hover-bg { transition: background 0.15s ease; }
+  .hover-bg:active { background: var(--bg-subtle); }
 </style>
 </head>
 <body>
@@ -829,10 +831,10 @@
   <div id="tab-diary" class="tab-content active">
     
     <div class="header">
-      <div class="date-pill">
-        <i data-lucide="chevron-left" style="width:18px; cursor:pointer;" onclick="changeDate(-1)"></i>
-        <span id="currentDateLabel" class="date-label" style="cursor: pointer; padding: 0 4px;" onclick="openDatePickerModal()">Сегодня</span>
-        <i data-lucide="chevron-right" style="width:18px; cursor:pointer;" onclick="changeDate(1)"></i>
+      <div class="date-pill" style="padding: 4px; gap: 2px;">
+        <div onclick="changeDate(-1)" style="padding: 6px 12px; cursor: pointer; display: flex; align-items: center; border-radius: 20px;" class="hover-bg"><i data-lucide="chevron-left" style="width:18px;"></i></div>
+        <span id="currentDateLabel" class="date-label" style="cursor: pointer; padding: 6px 12px; border-radius: 20px; font-weight: 600;" class="hover-bg" onclick="openDatePickerModal()">Сегодня</span>
+        <div onclick="changeDate(1)" style="padding: 6px 12px; cursor: pointer; display: flex; align-items: center; border-radius: 20px;" class="hover-bg"><i data-lucide="chevron-right" style="width:18px;"></i></div>
       </div>
       
       <div style="display:flex; gap:8px;">
@@ -927,7 +929,7 @@
       </label>
       <label style="display: flex; align-items: center; gap: 6px; font-size: 13px; font-weight: 600; color: var(--text-main); cursor: pointer;">
         <input type="checkbox" id="cb-cycling" onchange="toggleDayFlag('isCycling')" style="width: 16px; height: 16px; accent-color: var(--accent-green);">
-        🚴 Вело.
+        🚴 Вело
       </label>
       <label style="display: flex; align-items: center; gap: 6px; font-size: 13px; font-weight: 600; color: var(--text-main); cursor: pointer;">
         <input type="checkbox" id="cb-football" onchange="toggleDayFlag('isFootball')" style="width: 16px; height: 16px; accent-color: #3B82F6;">
@@ -961,11 +963,11 @@
     
     <div class="calendar-card">
       <div class="calendar-nav">
-        <button class="icon-btn-round" onclick="changeDatePickerMonth(-1)">
+        <button class="icon-btn-round" onclick="changeCalMonth(-1)">
           <i data-lucide="chevron-left" style="width:16px;height:16px;"></i>
         </button>
         <div class="calendar-month-title" id="calMonthTitle">Август 2026</div>
-        <button class="icon-btn-round" onclick="changeDatePickerMonth(1)">
+        <button class="icon-btn-round" onclick="changeCalMonth(1)">
           <i data-lucide="chevron-right" style="width:16px;height:16px;"></i>
         </button>
       </div>
@@ -1349,10 +1351,10 @@
         <span style="font-weight:600;font-size:13px;">Назад</span>
       </button>
 
-      <div class="date-pill" style="margin: 0; height: 32px; padding: 4px 8px;">
-        <i data-lucide="chevron-left" style="width:18px; cursor:pointer;" onclick="changeMeasDate(-1)"></i>
-        <span id="measModalDateLabel" class="date-label" style="cursor: pointer; padding: 0 4px;" onclick="openDatePickerModal()">Сегодня</span>
-        <i data-lucide="chevron-right" style="width:18px; cursor:pointer;" onclick="changeMeasDate(1)"></i>
+      <div class="date-pill" style="margin: 0; height: 36px; padding: 4px; gap: 2px;">
+        <div onclick="changeMeasDate(-1)" style="padding: 6px 12px; cursor: pointer; display: flex; align-items: center; border-radius: 20px;"><i data-lucide="chevron-left" style="width:18px;"></i></div>
+        <span id="measModalDateLabel" class="date-label" style="cursor: pointer; padding: 6px 12px; border-radius: 20px; font-weight: 600;" onclick="openDatePickerModal()">Сегодня</span>
+        <div onclick="changeMeasDate(1)" style="padding: 6px 12px; cursor: pointer; display: flex; align-items: center; border-radius: 20px;"><i data-lucide="chevron-right" style="width:18px;"></i></div>
       </div>
 
       <button onclick="goToMeasCharts()" class="date-pill" style="margin: 0; padding: 4px 6px 4px 10px; cursor:pointer; gap:2px; height: 32px; color: var(--text-muted);" title="Динамика">
