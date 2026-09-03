@@ -15,9 +15,9 @@
   <link rel="manifest" href="manifest.json">
   
   <!-- Библиотеки: Chart.js (графики), SheetJS (Excel), Lucide (иконки) -->
-  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
-  <script src="https://unpkg.com/lucide@latest"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js" defer></script>
+  <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js" defer></script>
+  <script src="https://unpkg.com/lucide@latest" defer></script>
   
   <style>
     /* ================= СВЕТЛАЯ ТЕМА (ПО УМОЛЧАНИЮ) ================= */
@@ -182,6 +182,21 @@
       box-shadow: var(--shadow-sm); 
     }
     
+    .cal-summary-grid-4 {
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr 1fr;
+      text-align: center;
+      gap: 4px;
+      margin-bottom: 14px;
+    }
+    
+    .cal-summary-grid-4 .stat-box .val {
+      font-size: 18px;
+    }
+    .cal-summary-grid-4 .stat-box .label {
+      font-size: 9px;
+    }
+
     .cal-summary-grid { 
       display: grid; 
       grid-template-columns: 1fr 1fr 1fr; 
@@ -191,13 +206,13 @@
     }
     
     .stat-box .val { 
-      font-size: 22px; 
+      font-size: 26px; 
       font-weight: 800; 
       letter-spacing: -0.5px; 
     }
     
     .stat-box .label { 
-      font-size: 11px; 
+      font-size: 10px; 
       font-weight: 600; 
       color: var(--text-muted); 
       margin-top: 2px; 
@@ -968,7 +983,8 @@
       
       <div class="cal-quick-actions">
         <button class="cal-chip-btn" onclick="selectCalendarPreset('week')">⚡ 7 дней</button>
-        <button class="cal-chip-btn" onclick="selectCalendarPreset('all_month')">📆 Весь месяц</button>
+        <button class="cal-chip-btn" onclick="selectCalendarPreset('current_week')">Тек. нед.</button>
+        <button class="cal-chip-btn" onclick="selectCalendarPreset('all_month')">📆 Месяц</button>
         <button class="cal-chip-btn" onclick="clearCalendarSelection()">✕ Сброс</button>
       </div>
     </div>
@@ -989,18 +1005,26 @@
         <div id="tdee-info-cal" style="font-size: 10px; color: var(--text-muted); margin-top: 6px;">Считается от вашей теоретической нормы TDEE</div>
       </div>
 
-      <div class="cal-summary-grid" style="margin-bottom: 0;">
+      <div class="cal-summary-grid-4" style="margin-bottom: 0;">
         <div class="stat-box">
           <div class="val" id="avg-cal" style="color:var(--text-main);">0</div>
           <div class="label">ккал/день</div>
+          <div style="font-size: 10px; color: var(--text-muted); margin-top: 2px;" id="tgt-cal"></div>
         </div>
         <div class="stat-box">
           <div class="val" id="avg-pro" style="color:var(--accent-blue);">0 г</div>
           <div class="label">Белки ср.</div>
+          <div style="font-size: 10px; color: var(--text-muted); margin-top: 2px;" id="tgt-pro"></div>
         </div>
         <div class="stat-box">
           <div class="val" id="avg-fat" style="color:var(--accent-orange);">0 г</div>
           <div class="label">Жиры ср.</div>
+          <div style="font-size: 10px; color: var(--text-muted); margin-top: 2px;" id="tgt-fat"></div>
+        </div>
+        <div class="stat-box">
+          <div class="val" id="avg-carb" style="color:var(--accent-green);">0 г</div>
+          <div class="label">Углев. ср.</div>
+          <div style="font-size: 10px; color: var(--text-muted); margin-top: 2px;" id="tgt-carb"></div>
         </div>
       </div>
     </div>
@@ -1121,6 +1145,16 @@
         <label>Цель по белку (г)</label>
         <input type="number" id="manual-pro-target" class="form-input" placeholder="Например: 130">
       </div>
+      
+      <div class="input-group">
+        <label>Цель по жирам (г)</label>
+        <input type="number" id="manual-fat-target" class="form-input" placeholder="Например: 70">
+      </div>
+      
+      <div class="input-group">
+        <label>Цель по углеводам (г)</label>
+        <input type="number" id="manual-carb-target" class="form-input" placeholder="Например: 150">
+      </div>
 
       <button class="btn-primary" onclick="saveManualNorm()">Сохранить настройки</button>
       
@@ -1140,6 +1174,14 @@
         <div style="display: flex; justify-content: space-between;">
           <span style="color:var(--text-muted);">Цель по белку:</span>
           <strong id="prof-target-pro">-</strong>
+        </div>
+        <div style="display: flex; justify-content: space-between; margin-top: 6px;">
+          <span style="color:var(--text-muted);">Цель по жирам:</span>
+          <strong id="prof-target-fat">-</strong>
+        </div>
+        <div style="display: flex; justify-content: space-between; margin-top: 6px;">
+          <span style="color:var(--text-muted);">Цель по углеводам:</span>
+          <strong id="prof-target-carb">-</strong>
         </div>
       </div>
     </div>
@@ -1491,6 +1533,8 @@
       tdee: 2200, 
       defaultTargetCal: 1900, 
       defaultTargetPro: 130,
+      defaultTargetFat: 70,
+      defaultTargetCarb: 150,
       activeFlags: ['isHoliday', 'isBand', 'isCycling', 'isFootball', 'isRun', 'isSki'],
       customFlags: [...DEFAULT_FLAGS]
     }, 
@@ -1794,9 +1838,10 @@ function changeDate(daysToAdd) {
 
     const calP = totalP * 4, calF = totalF * 9, calC = totalC * 4;
     const sum = calP + calF + calC || 1;
-    document.getElementById("pct-protein").innerText = `(${Math.round((calP/sum)*100)}%)`;
-    document.getElementById("pct-fat").innerText = `(${Math.round((calF/sum)*100)}%)`;
-    document.getElementById("pct-carbs").innerText = `(${Math.round((calC/sum)*100)}%)`;
+    const p = AppState.userProfile;
+    document.getElementById("pct-protein").innerText = p.defaultTargetPro ? `(${p.defaultTargetPro} г)` : `(${Math.round((calP/sum)*100)}%)`;
+    document.getElementById("pct-fat").innerText = p.defaultTargetFat ? `(${p.defaultTargetFat} г)` : `(${Math.round((calF/sum)*100)}%)`;
+    document.getElementById("pct-carbs").innerText = p.defaultTargetCarb ? `(${p.defaultTargetCarb} г)` : `(${Math.round((calC/sum)*100)}%)`;
     document.getElementById("macroTotalKcal").innerHTML = `${Math.round(totalCal)}<br><span style="font-size:9px;color:var(--text-muted);font-weight:600;">ккал</span>`;
 
     renderDoughnut(calP, calF, calC);
@@ -2312,7 +2357,7 @@ function changeDate(daysToAdd) {
     }
     
     // ПОДСЧЕТ ДЕФИЦИТА ОТ TDEE
-    let sumCal = 0, sumP = 0, sumF = 0;
+    let sumCal = 0, sumP = 0, sumF = 0, sumC = 0;
     let sumTdee = 0; 
     let daysWithMeals = 0;
     
@@ -2329,6 +2374,7 @@ function changeDate(daysToAdd) {
             sumCal += Number(i.cal) || 0; 
             sumP += Number(i.p) || 0; 
             sumF += Number(i.f) || 0; 
+            sumC += Number(i.c) || 0; 
           });
         }); 
       }
@@ -2360,6 +2406,14 @@ function changeDate(daysToAdd) {
     document.getElementById("avg-cal").innerText = Math.round(sumCal / div);
     document.getElementById("avg-pro").innerText = `${(sumP / div).toFixed(1)} г`;
     document.getElementById("avg-fat").innerText = `${(sumF / div).toFixed(1)} г`;
+    document.getElementById("avg-carb").innerText = `${(sumC / div).toFixed(1)} г`;
+    
+    // update targets
+    const p = AppState.userProfile;
+    document.getElementById("tgt-cal").innerText = p.defaultTargetCal ? `(${p.defaultTargetCal} ккал)` : '';
+    document.getElementById("tgt-pro").innerText = p.defaultTargetPro ? `(${p.defaultTargetPro} г)` : '';
+    document.getElementById("tgt-fat").innerText = p.defaultTargetFat ? `(${p.defaultTargetFat} г)` : '';
+    document.getElementById("tgt-carb").innerText = p.defaultTargetCarb ? `(${p.defaultTargetCarb} г)` : '';
   }
 
   function changeCalMonth(d) { 
@@ -2378,6 +2432,16 @@ function changeDate(daysToAdd) {
         let d = new Date(t); 
         d.setDate(d.getDate() - i); 
         selectedCalDates.add(d.toISOString().split("T")[0]);
+      }
+    } else if (p === 'current_week') {
+      const dDay = t.getDay();
+      const diffToMonday = dDay === 0 ? 6 : dDay - 1;
+      const dCopy = new Date(t);
+      dCopy.setDate(dCopy.getDate() - diffToMonday);
+      for (let i = 0; i < 7; i++) {
+        let currentIter = new Date(dCopy);
+        currentIter.setDate(currentIter.getDate() + i);
+        selectedCalDates.add(currentIter.toISOString().split("T")[0]);
       }
     } else if (p === 'all_month') {
       const tD = new Date(calViewYear, calViewMonth + 1, 0).getDate(); 
@@ -2762,11 +2826,15 @@ function changeDate(daysToAdd) {
     const tdee = Number(document.getElementById("manual-tdee").value) || AppState.userProfile.tdee;
     const targetCal = Number(document.getElementById("manual-cal-target").value) || AppState.userProfile.defaultTargetCal;
     const targetPro = Number(document.getElementById("manual-pro-target").value) || AppState.userProfile.defaultTargetPro;
+    const targetFat = Number(document.getElementById("manual-fat-target").value) || AppState.userProfile.defaultTargetFat;
+    const targetCarb = Number(document.getElementById("manual-carb-target").value) || AppState.userProfile.defaultTargetCarb;
     
     AppState.userProfile.mode = 'manual';
     AppState.userProfile.tdee = tdee;
     AppState.userProfile.defaultTargetCal = targetCal;
     AppState.userProfile.defaultTargetPro = targetPro;
+    AppState.userProfile.defaultTargetFat = targetFat;
+    AppState.userProfile.defaultTargetCarb = targetCarb;
     
     // Обновляем цель для текущего дня
     if (AppState.days[currentDate]) {
@@ -2785,10 +2853,14 @@ function changeDate(daysToAdd) {
     document.getElementById("prof-tdee-val").innerText = `${p.tdee} ккал`;
     document.getElementById("prof-target-cal").innerText = `${p.defaultTargetCal} ккал`;
     document.getElementById("prof-target-pro").innerText = `${p.defaultTargetPro} г`;
+    document.getElementById("prof-target-fat").innerText = `${p.defaultTargetFat || 0} г`;
+    document.getElementById("prof-target-carb").innerText = `${p.defaultTargetCarb || 0} г`;
     
     document.getElementById("manual-tdee").value = p.tdee;
     document.getElementById("manual-cal-target").value = p.defaultTargetCal;
     document.getElementById("manual-pro-target").value = p.defaultTargetPro;
+    document.getElementById("manual-fat-target").value = p.defaultTargetFat || '';
+    document.getElementById("manual-carb-target").value = p.defaultTargetCarb || '';
     
     
     if (AppState.settings && AppState.settings.backupTime) {
@@ -3024,7 +3096,7 @@ function changeDate(daysToAdd) {
   // Регистрация Service Worker для PWA (Офлайн)
   if ('serviceWorker' in navigator) {
     window.addEventListener('load', () => {
-      navigator.serviceWorker.register('/sw.js').then(reg => {
+      navigator.serviceWorker.register('sw.js').then(reg => {
         console.log('Service Worker зарегистрирован!', reg);
       }).catch(err => console.error('Ошибка регистрации SW', err));
     });
@@ -3039,3 +3111,4 @@ function changeDate(daysToAdd) {
 </script>
 </body>
 </html>
+
