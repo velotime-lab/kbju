@@ -1,0 +1,16 @@
+{
+  "name": "КБЖУ Трекер",
+  "short_name": "КБЖУ",
+  "description": "Персональный трекер калорий и БЖУ",
+  "start_url": "./index.html",
+  "display": "standalone",
+  "background_color": "#F8FAFC",
+  "theme_color": "#F8FAFC",
+  "icons": [
+    {
+      "src": "https://cdn-icons-png.flaticon.com/512/3176/3176363.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+}
