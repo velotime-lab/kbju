@@ -4,6 +4,9 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
   <title>КБЖУ Трекер</title>
+  <meta name="description" content="Персональный трекер калорий и БЖУ с офлайн-доступом и PWA">
+  <meta property="og:title" content="КБЖУ Трекер">
+  <meta property="og:description" content="Персональный трекер калорий и БЖУ с офлайн-доступом и PWA">
   
   <!-- Настройки для работы как приложение на главном экране iOS/Android -->
   <meta name="apple-mobile-web-app-capable" content="yes">
@@ -12,11 +15,11 @@
   <meta name="theme-color" content="#F8FAFC">
   
   <link rel="apple-touch-icon" href="https://cdn-icons-png.flaticon.com/512/3176/3176363.png">
+  <link rel="apple-touch-icon" href="apple-touch-icon.png">
   <link rel="manifest" href="manifest.json">
   
-  <!-- Библиотеки: Chart.js (графики), SheetJS (Excel), Lucide (иконки) -->
+  <!-- Библиотеки: Chart.js (графики), Lucide (иконки) -->
   <script src="https://cdn.jsdelivr.net/npm/chart.js" defer></script>
-  <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js" defer></script>
   <script src="https://unpkg.com/lucide@latest" defer></script>
   
   <style>
@@ -837,7 +840,6 @@
 
 <!-- Скрытые инпуты для загрузки файлов -->
 <input type="file" id="jsonFileInput" accept=".json" style="display:none;" onchange="handleJsonFileImport(event)">
-<input type="file" id="excelFileInput" accept=".xlsx, .xls" style="display:none;" onchange="handleExcelFileImport(event)">
 <input type="file" id="measJsonFileInput" accept=".json" style="display:none;" onchange="handleMeasJsonFileImport(event)">
 
 <div class="container">
@@ -1033,9 +1035,6 @@
   <div id="tab-products" class="tab-content">
     <div class="header">
       <h2>📦 База продуктов</h2>
-      <button class="icon-btn-round" onclick="exportProductsExcel()">
-        <i data-lucide="file-spreadsheet" style="width:16px;height:16px;color:var(--accent-green);"></i>
-      </button>
     </div>
     
     <input type="text" class="search-input" id="productSearch" placeholder="🔍 Поиск по базе..." oninput="renderProductDatabase()">
@@ -1210,14 +1209,7 @@
         </button>
       </div>
       
-      <div class="backup-btn-group" style="margin-top: 8px;">
-        <button class="btn-action-outline" onclick="exportFullExcel()">
-          <i data-lucide="file-down" style="width:14px;height:14px;"></i> Дневник Excel
-        </button>
-        <button class="btn-action-outline" onclick="triggerExcelImport()">
-          <i data-lucide="file-up" style="width:14px;height:14px;"></i> Загрузить Excel
-        </button>
-      </div>
+
     </div>
     
     <!-- Экспорт Замеров -->
@@ -1514,6 +1506,64 @@
   </div>
 </div>
 <script>
+  // ================= 0. МИНИМАЛИСТИЧНЫЕ УВЕДОМЛЕНИЯ (TOAST) =================
+  function showToast(message) {
+    let toast = document.getElementById('global-toast-notification');
+    if (!toast) {
+      toast = document.createElement('div');
+      toast.id = 'global-toast-notification';
+      toast.style.cssText = `
+        position: fixed;
+        top: max(16px, env(safe-area-inset-top, 16px));
+        left: 50%;
+        transform: translate(-50%, -60px);
+        opacity: 0;
+        background: #10B981;
+        color: #ffffff;
+        padding: 9px 18px;
+        border-radius: 9999px;
+        font-size: 14px;
+        font-weight: 600;
+        letter-spacing: -0.01em;
+        box-shadow: 0 8px 24px rgba(16, 185, 129, 0.35);
+        z-index: 100000;
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        pointer-events: none;
+        white-space: nowrap;
+        transition: transform 0.28s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.25s ease;
+      `;
+      document.body.appendChild(toast);
+    }
+
+    let cleanText = String(message || '').replace(/^[✅\s]+/, '').trim();
+    if (!cleanText) cleanText = "Готово";
+
+    toast.innerHTML = `
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;">
+        <polyline points="20 6 9 17 4 12"></polyline>
+      </svg>
+      <span>${cleanText}</span>
+    `;
+
+    requestAnimationFrame(() => {
+      toast.style.opacity = '1';
+      toast.style.transform = 'translate(-50%, 0)';
+    });
+
+    if (window._toastTimeout) clearTimeout(window._toastTimeout);
+    window._toastTimeout = setTimeout(() => {
+      toast.style.opacity = '0';
+      toast.style.transform = 'translate(-50%, -40px)';
+    }, 2200);
+  }
+
+  // Перехват alert для автоматического показа минималистичного toast без кнопки ОК
+  window.alert = function(msg) {
+    showToast(msg);
+  };
+
   // ================= 1. ИНИЦИАЛИЗАЦИЯ И ХРАНИЛИЩЕ =================
   
   const DEFAULT_FLAGS = [
@@ -1580,7 +1630,7 @@
       AppState.currentDate = currentDate;
       localStorage.setItem("kbju_tracker_v7", JSON.stringify(AppState)); 
     } catch (e) { 
-      alert("⚠️ Ошибка: Память телефона переполнена!"); 
+      showToast("Память устройства переполнена"); 
     }
   }
 
@@ -1626,9 +1676,9 @@
                 if (!AppState.settings) AppState.settings = {};
                 AppState.settings.backupTime = time;
                 saveState();
-                alert(`🔔 Уведомление о бэкапе установлено на ${time}`);
+                showToast(`Уведомление установлено на ${time}`);
             } else {
-                alert("Разрешите уведомления в настройках телефона/браузера.");
+                showToast("Разрешите уведомления в настройках телефона/браузера.");
             }
         });
     }
@@ -2035,6 +2085,7 @@ function changeDate(daysToAdd) {
     saveState();
     renderDay(); // чтобы обновилась плашка
     updateMeasDiffs();
+    showToast("Изменено");
   }
 
   // ================= 4. РУЧНОЙ ВВОД (МОДАЛКА) =================
@@ -2053,7 +2104,7 @@ function changeDate(daysToAdd) {
       document.getElementById('manualFat').value = item.f;
       document.getElementById('manualCarb').value = item.c;
     } else {
-      document.getElementById('manualModalTitle').innerText = '➕ Добавить блюдо';
+      document.getElementById('manualModalTitle').innerText = '🍽 Добавить блюдо';
       document.getElementById('manualMeal').value = mealName || 'Перекус';
       document.getElementById('manualName').value = '';
       document.getElementById('manualCal').value = '';
@@ -2115,6 +2166,7 @@ function changeDate(daysToAdd) {
     saveState(); 
     closeManualEntryModal(); 
     renderDay();
+    showToast(editIdx >= 0 ? "Изменено" : "Вставлено");
   }
 
   // ================= 5. УМНЫЙ ИМПОРТ (JSON / ТЕКСТ) =================
@@ -2146,7 +2198,7 @@ function changeDate(daysToAdd) {
   function applyImport() {
     const text = document.getElementById("jsonInput").value.trim();
     if (!text) {
-      alert("Поле пустое. Вставьте данные!");
+      showToast("Вставьте данные");
       return;
     }
     
@@ -2168,10 +2220,10 @@ function changeDate(daysToAdd) {
       if (parsedFromText && parsedFromText.meals.length > 0) {
         processImportedData(parsedFromText);
       } else {
-        alert("Не удалось распознать формат. Проверьте правильность скопированного текста или JSON.");
+        showToast("Не удалось распознать формат");
       }
     } catch (e) {
-      alert("Ошибка текстового импорта.");
+      showToast("Ошибка импорта");
     }
   }
 
@@ -2271,7 +2323,7 @@ function changeDate(daysToAdd) {
     closeImportModal();
     document.getElementById("jsonInput").value = "";
     renderDay();
-    alert("✅ Дневник успешно обновлен!");
+    showToast("Вставлено");
   }
 
   // ================= 6. ЦЕЛЬ НА КОНКРЕТНЫЙ ДЕНЬ =================
@@ -2294,6 +2346,7 @@ function changeDate(daysToAdd) {
     saveState(); 
     closeTargetModal(); 
     renderDay(); 
+    showToast("Изменено");
   }
 
   // ================= 7. КАЛЕНДАРЬ И ПРАВИЛЬНЫЙ ДЕФИЦИТ ОТ TDEE =================
@@ -2381,7 +2434,7 @@ function changeDate(daysToAdd) {
     });
     
     const div = daysWithMeals || 1; 
-    const totalDeficit = sumTdee - sumCal; 
+    const totalDeficit = Math.round(sumTdee - sumCal); 
     const avgDeficit = Math.round(totalDeficit / div);
     
     document.getElementById("avgSelectedCount").innerText = `${selectedCalDates.size} дн.`;
@@ -2389,18 +2442,27 @@ function changeDate(daysToAdd) {
     const defEl = document.getElementById("total-deficit");
     const avgDefEl = document.getElementById("avg-deficit");
     
+    const kgVal = Math.abs(totalDeficit) / 7700;
+    const kgStr = kgVal.toFixed(1).replace(/\.0$/, '');
+
     if (daysWithMeals === 0) { 
       defEl.innerText = "0 ккал"; 
       defEl.style.color = "var(--text-muted)"; 
       avgDefEl.innerText = `Выберите дни с записями`;
     } else if (totalDeficit > 0) { 
-      defEl.innerText = `-${totalDeficit} ккал (Дефицит)`; 
+      const kgPart = kgStr === '0' ? '0кг' : `-${kgStr}кг`;
+      defEl.innerText = `-${totalDeficit} ккал (${kgPart})`; 
       defEl.style.color = "var(--accent-green)"; 
       avgDefEl.innerText = `В среднем вы недоедаете: ${avgDeficit} ккал / день`;
-    } else { 
-      defEl.innerText = `+${Math.abs(totalDeficit)} ккал (Профицит)`; 
+    } else if (totalDeficit < 0) { 
+      const kgPart = kgStr === '0' ? '0кг' : `+${kgStr}кг`;
+      defEl.innerText = `+${Math.abs(totalDeficit)} ккал (${kgPart})`; 
       defEl.style.color = "var(--accent-red)"; 
       avgDefEl.innerText = `В среднем вы переедаете: ${Math.abs(avgDeficit)} ккал / день`;
+    } else {
+      defEl.innerText = "0 ккал (0кг)"; 
+      defEl.style.color = "var(--text-muted)"; 
+      avgDefEl.innerText = `Баланс калорий в норме: 0 ккал / день`;
     }
 
     document.getElementById("avg-cal").innerText = Math.round(sumCal / div);
@@ -2485,7 +2547,7 @@ function changeDate(daysToAdd) {
       lines.push(`${n} - ${p.cal} ккал (Б:${p.p} Ж:${p.f} У:${p.c})`);
     });
     navigator.clipboard.writeText(lines.join("\n"));
-    alert("Скопировано блюд: " + selectedProducts.size);
+    showToast("Скопировано");
     selectedProducts.clear();
     renderProductDatabase();
   }
@@ -2535,7 +2597,7 @@ function changeDate(daysToAdd) {
               <button class="copy-chip" onclick="addToDiaryFromDb('${n.replace(/'/g, "\\'")}')" title="Добавить на сегодня">
                 <i data-lucide="plus" style="width:14px;height:14px;"></i>
               </button>
-              <button class="copy-chip" onclick="navigator.clipboard.writeText('${copyTxt}'); alert('Скопировано!')" title="Скопировать текст">
+              <button class="copy-chip" onclick="navigator.clipboard.writeText('${copyTxt}'); showToast('Скопировано')" title="Скопировать текст">
                 <i data-lucide="copy" style="width:14px;height:14px;"></i>
               </button>
             </div>
@@ -2563,7 +2625,7 @@ function changeDate(daysToAdd) {
     
     mObj.items.push({ name: name, cal: item.cal, p: item.p, f: item.f, c: item.c });
     saveState();
-    alert("✅ Успешно добавлено на сегодня!");
+    showToast("Добавлено");
   }
 
   // ================= 9. ГРАФИКИ (ЛИНИЯ ЦЕЛИ И ЗАМЕРЫ) =================
@@ -2767,7 +2829,7 @@ function changeDate(daysToAdd) {
     const colorInput = document.getElementById('new-flag-color').value;
     
     if (!emojiInput || !nameInput) {
-      alert("Пожалуйста, введите эмодзи и название активности.");
+      showToast("Введите эмодзи и название");
       return;
     }
     
@@ -2844,7 +2906,7 @@ function changeDate(daysToAdd) {
     saveState(); 
     updateProfileUI(); 
     renderDay(); 
-    alert("✅ Глобальные настройки нормы сохранены!");
+    showToast("Изменено");
   }
 
   function updateProfileUI() {
@@ -2905,7 +2967,7 @@ function changeDate(daysToAdd) {
 
   }
 
-  // ================= 11. ЭКСПОРТ (ТЕКСТ, JSON, EXCEL) =================
+  // ================= 11. ЭКСПОРТ (ТЕКСТ, JSON) =================
   function exportText() {
     let txt = "=== ДНЕВНИК КБЖУ ===\n\n";
     
@@ -2942,7 +3004,7 @@ function changeDate(daysToAdd) {
   
   function copyTextExport() { 
     navigator.clipboard.writeText(document.getElementById("textExpArea").value); 
-    alert("✅ Весь текст успешно скопирован в буфер обмена!"); 
+    showToast("Скопировано"); 
   }
 
   // Бэкапы в файлы
@@ -2966,13 +3028,13 @@ function changeDate(daysToAdd) {
         if (importedData.days) {
           AppState = importedData; 
           saveState(); 
-          alert("✅ Данные успешно восстановлены!"); 
-          location.reload(); 
+          showToast("Восстановлено"); 
+          setTimeout(() => location.reload(), 600); 
         } else {
           throw new Error("Неверный формат");
         }
       } catch(err) { 
-        alert("Ошибка файла. Убедитесь, что это файл бэкапа КБЖУ."); 
+        showToast("Ошибка файла бэкапа"); 
       } 
     };
     reader.readAsText(event.target.files[0]);
@@ -3000,7 +3062,7 @@ function changeDate(daysToAdd) {
         if (typeof importedData === "object" && !Array.isArray(importedData)) {
           AppState.measurements = importedData; 
           saveState(); 
-          alert("✅ Замеры успешно загружены!"); 
+          showToast("Вставлено"); 
           
           // Обновляем UI, если мы находимся на вкладках, где они нужны
           updateMeasurementsSummary();
@@ -3012,91 +3074,18 @@ function changeDate(daysToAdd) {
           throw new Error("Неверный формат");
         }
       } catch(err) { 
-        alert("Ошибка файла. Убедитесь, что это файл замеров (JSON)."); 
+        showToast("Ошибка файла замеров"); 
       }
       event.target.value = ''; // Сбросить инпут
     };
     reader.readAsText(event.target.files[0]);
-  }
-  
-  function exportFullExcel() {
-    const wb = XLSX.utils.book_new();
-    const lR = [["Дата","Прием","Блюдо","Ккал","Б","Ж","У"]];
-    
-    Object.keys(AppState.days || {}).forEach(dt => {
-      AppState.days[dt].meals.forEach(m => {
-        m.items.forEach(i => {
-          lR.push([dt, m.meal, i.name, i.cal, i.p, i.f, i.c]);
-        });
-      });
-    });
-    XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(lR), "Дневник");
-    
-    XLSX.writeFile(wb, `kbju_excel_${currentDate}.xlsx`);
-  }
-  
-  // Экспорт только продуктов
-  function exportProductsExcel() {
-    const wb = XLSX.utils.book_new();
-    const lR = [["Продукт", "Ккал", "Белки", "Жиры", "Углеводы"]];
-
-    Object.keys(AppState.productsDb || {}).sort().forEach(name => {
-      const p = AppState.productsDb[name];
-      lR.push([name, p.cal || 0, p.p || 0, p.f || 0, p.c || 0]);
-    });
-
-    XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(lR), "База продуктов");
-    XLSX.writeFile(wb, `kbju_products_${currentDate}.xlsx`);
-  }
-  
-  function triggerExcelImport() { 
-    document.getElementById("excelFileInput").click(); 
-  }
-  
-  function handleExcelFileImport(event) {
-    const file = event.target.files[0];
-    if (!file) return;
-    
-    const reader = new FileReader();
-    reader.onload = ev => {
-      try {
-        const wb = XLSX.read(new Uint8Array(ev.target.result), {type: "array"});
-        if (wb.Sheets["Дневник"]) {
-          const rows = XLSX.utils.sheet_to_json(wb.Sheets["Дневник"]);
-          rows.forEach(r => {
-            const dt = r["Дата"], ml = r["Прием"], nm = r["Блюдо"];
-            if (dt && nm) {
-              if (!AppState.days[dt]) {
-                AppState.days[dt] = { date: dt, target_calories: AppState.userProfile.defaultTargetCal, meals: [] };
-              }
-              let m = AppState.days[dt].meals.find(y => y.meal === ml);
-              if (!m) { 
-                m = { meal: ml, items: [] }; 
-                AppState.days[dt].meals.push(m); 
-              }
-              m.items.push({ 
-                name: nm, cal: Number(r["Ккал"]) || 0, p: Number(r["Б"]) || 0, 
-                f: Number(r["Ж"]) || 0, c: Number(r["У"]) || 0 
-              });
-            }
-          });
-          saveState(); 
-          alert("✅ Данные из Excel загружены!");
-          location.reload();
-        }
-      } catch(err) {
-        alert("Ошибка импорта Excel.");
-      }
-    };
-    reader.readAsArrayBuffer(file);
-    event.target.value = "";
   }
 
   // ================= 12. ЗАПУСК ПРИЛОЖЕНИЯ И ОФЛАЙН =================
   // Регистрация Service Worker для PWA (Офлайн)
   if ('serviceWorker' in navigator) {
     window.addEventListener('load', () => {
-      navigator.serviceWorker.register('sw.js').then(reg => {
+      navigator.serviceWorker.register('./sw.js').then(reg => {
         console.log('Service Worker зарегистрирован!', reg);
       }).catch(err => console.error('Ошибка регистрации SW', err));
     });
